@@ -4485,7 +4485,6 @@ async function salvarTudo(trocarPasta){
   gerandoPdf=true; if(btn)btn.disabled=true;
   try{
     const base=nomeBaseDoFluxo();
-    const dados=new Blob([JSON.stringify(pacoteFluxo(),null,2)],{type:'application/json'});
     diz('Montando o PDF…');
     const pdf=await montarPdfFluxo(diz);
 
@@ -4502,20 +4501,15 @@ async function salvarTudo(trocarPasta){
         pastaFluxo=null;              /* pasta recusada pelo navegador: baixa os arquivos */
       }
     }
-    /* a pasta da aula fica so com o PDF; o arquivo que o "Abrir fluxo…" le vai
-       para a subpasta PASTA_FLUXOS. No celular e no iPad nao da pra gravar em
-       pasta: la sai so o PDF, que e o que se usa.                           */
+    /* um arquivo so: o PDF ja carrega o fluxo dentro dele, entao nao existe
+       mais arquivo separado pra guardar junto.                             */
     if(pasta){
       await gravar(pasta,base+'.pdf',pdf);
-      const guardados=await pasta.getDirectoryHandle(PASTA_FLUXOS,{create:true});
-      await gravar(guardados,base+'.json',dados);
       const el=document.getElementById('fxPastaNome');
       if(el){ el.textContent=pasta.name; el.classList.add('ativa'); }
     }else{
-      /* sem pasta (Safari, iPad, iPhone): os dois arquivos vao juntos na folha
-         de compartilhamento, pra caírem no iCloud de uma vez so             */
-      await entregar([{nome:base+'.pdf',blob:pdf,tipo:'application/pdf'},
-                      {nome:base+'.json',blob:dados,tipo:'application/json'}]);
+      /* sem pasta (Safari, iPad, iPhone): vai pela folha de compartilhamento */
+      await entregar([{nome:base+'.pdf',blob:pdf,tipo:'application/pdf'}]);
     }
     diz('Salvar');
     flash('fxSalvoOk');
@@ -4775,15 +4769,13 @@ async function abrirArquivoFluxo(arq){
     aplicarPacote(pacote);
     flash('fxSalvoOk');
   }catch(e){
-    alert('Este arquivo não é um fluxo salvo. Escolha o PDF que esta página salvou, '+
-          'ou o arquivo com o nome da aula que está na pasta "'+PASTA_FLUXOS+'".');
+    alert('Este arquivo não é um fluxo salvo. Escolha o PDF ou o .json que esta '+
+          'página salvou, com o nome da aula.');
   }
 }
 
-/* os dois arquivos saem com o mesmo nome da aula: o <aula>.pdf fica na pasta
-   da aula e o <aula>.json vai para a subpasta abaixo, que e de onde o botao
-   "Abrir fluxo…" le.                                                        */
-const PASTA_FLUXOS='abrir_fluxos_html';
+/* os dois arquivos saem com o mesmo nome da aula, lado a lado na pasta
+   escolhida: <aula>.pdf e <aula>.json                                       */
 function nomeBaseDoFluxo(){
   const campo=document.getElementById('nomeAula');
   const nome=(FLUXO.titulo||(campo?campo.value:'')||'').trim();
