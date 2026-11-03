@@ -139,7 +139,9 @@
   /* as datas ficam em cima das colunas 1o/2o/3o dia da tabela de baixo:
      mesma primeira coluna de 120px e os mesmos tres tercos depois */
   #fxDiarias{grid-template-columns:120px repeat(3,1fr);gap:0;}
-  #fxDiarias>div{padding:0 8px;}
+  /* min-width:0: sem isso a celula se recusa a encolher e vaza do bloco */
+  #fxDiarias>div{padding:0 8px;min-width:0;}
+  #fxDiarias input{min-width:0;}
   /* a 1a diaria comeca na 2a coluna: a 1a casa com a coluna CENA da tabela */
   #fxDiarias>div:first-child{grid-column-start:2;}
   .fx-cab label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted);font-weight:700;display:block;margin-bottom:5px;}
@@ -227,7 +229,12 @@
   .fx-livre{width:100%;min-height:62px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font-size:0.88rem;font-family:inherit;resize:vertical;}
   .fx-outro{display:block;}
   .fx-outro .fx-grupo{display:block;margin-bottom:5px;}
-  @media(max-width:760px){.fx-cab{grid-template-columns:1fr 1fr;}}
+  @media(max-width:760px){.fx-cab{grid-template-columns:1fr 1fr;}
+    /* no celular nao cabe alinhar as datas com as colunas da tabela:
+       uma embaixo da outra, cada uma na largura toda */
+    #fxDiarias{grid-template-columns:1fr;gap:12px;}
+    #fxDiarias>div{padding:0;}
+    #fxDiarias>div:first-child{grid-column-start:1;}}
   /* o QR precisa sair grande: apertado demais a camera nao le */
   /* so valores simples aqui: o gerador de PDF le esta folha inteira e
      reclama de funcao de CSS que ele nao sabe interpretar */
@@ -256,6 +263,11 @@
   #main-fluxo,#main-fluxo *{border-color:#000!important;}
   /* na folha a pagina e estreita; sem isto o cabecalho quebraria em 2x2 */
   #fxCabecalho{grid-template-columns:repeat(4,1fr)!important;}
+  /* o PDF e desenhado a 718px, que cai na regra de tela estreita: aqui o
+     bloco das datas volta a ficar alinhado com as colunas da tabela */
+  #fxDiarias{grid-template-columns:120px repeat(3,1fr)!important;gap:0!important;}
+  #fxDiarias>div{padding:0 8px!important;}
+  #fxDiarias>div:first-child{grid-column-start:2!important;}
   /* o que foi digitado ou escolhido sai em preto, nao no cinza da tela */
   input,select,textarea{color:#000!important;background:#fff!important;}
   /* nome do video, instrutor, estudio e data de gravacao em laranja,
@@ -4695,11 +4707,38 @@ function fecharPassagem(){
   const caixa=document.getElementById('fxPassagem');
   if(caixa)caixa.style.display='none';
 }
+/* Com o painel aberto, continuar preenchendo deixava o QR e o link velhos:
+   mostravam o fluxo de quando o painel abriu. Agora qualquer mudanca no
+   fluxo refaz os dois.                                                    */
+let relogioPassagem=null;
+function marcarPassagemVelha(){
+  const caixa=document.getElementById('fxPassagem');
+  if(!caixa || caixa.style.display!=='block')return;
+  clearTimeout(relogioPassagem);
+  relogioPassagem=setTimeout(function(){ abrirPassagem(); },500);
+}
+(function(){
+  const aba=document.getElementById('main-fluxo');
+  if(!aba)return;
+  aba.addEventListener('input',function(e){
+    if(e.target && e.target.closest && e.target.closest('#fxPassagem'))return;
+    marcarPassagemVelha();
+  });
+  aba.addEventListener('click',function(e){
+    if(e.target && e.target.closest && e.target.closest('#fxPassagem'))return;
+    if(e.target && (e.target.classList.contains('fx-chip') ||
+                    (e.target.closest && e.target.closest('td.diaria'))))marcarPassagemVelha();
+  });
+})();
 async function copiarLinkFluxo(){
   if(!temEnderecoDeSite()){ alert(AVISO_ARQUIVO); return; }
   try{
-    const link=ultimoLink||await linkDoFluxo();
+    /* sempre refaz: o link guardado e de quando o painel abriu, e o que foi
+       preenchido depois disso nao estaria dentro dele                      */
+    const link=await linkDoFluxo();
     ultimoLink=link;
+    const caixaLink=document.getElementById('fxLink');
+    if(caixaLink)caixaLink.value=link;
     if(navigator.clipboard && navigator.clipboard.writeText)await navigator.clipboard.writeText(link);
     else{
       const t=document.createElement('textarea');
