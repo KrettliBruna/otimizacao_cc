@@ -5392,10 +5392,10 @@ function espalharDataCena(indice){
 /* RITMO, DEDIL, TAB, TOCA e TOCA SOLO sao a mesma gravacao: escrever o
    arquivo em uma delas preenche as outras, na mesma coluna de dia */
 function espalharEnsinaArquivos(tipo,coluna){
-  if(ARQ_JUNTOS.indexOf(tipo)<0)return;
-  const valor=(FLUXO.arquivos[tipo]||[])[coluna]||'';
-  const tb=document.getElementById('fxArquivos');
-  ARQ_JUNTOS.forEach(function(outro){
+  const plano=espalhamentoDoArquivo(tipo,(FLUXO.arquivos[tipo]||[])[coluna]||'');
+  if(!plano)return;
+  const valor=plano[0], tb=document.getElementById('fxArquivos');
+  plano[1].forEach(function(outro){
     if(outro===tipo || !FLUXO.arquivos[outro])return;   /* so os que o roteiro tem */
     FLUXO.arquivos[outro][coluna]=valor;
     const linha=tb && tb.querySelector('tr[data-tipo="'+outro+'"]');
@@ -5581,10 +5581,25 @@ const ENSINA=['RITMO','DEDIL','TAB'];
 /* RITMO, DEDIL, TAB, TOCA e TOCA SOLO saem na mesma gravacao: dividem o
    numero do arquivo. Escrever em qualquer uma delas preenche as outras.  */
 const ARQ_JUNTOS=['RITMO','DEDIL','TAB','TOCA','TOCA SOLO'];
+/* ACORDES costuma levar dois arquivos ("1234 +12345"). Ele manda nas cenas
+   de cima, mas so com o ULTIMO numero — o primeiro fica so nele mesmo.
+   ACORDES e fonte, nunca destino: ninguem escreve de volta nele.         */
+const ARQ_FONTE='ACORDES';
+function ultimoArquivo(valor){
+  const partes=String(valor==null?'':valor).split(/[^0-9A-Za-z]+/).filter(Boolean);
+  return partes.length?partes[partes.length-1]:'';
+}
+/* devolve [valor que se espalha, lista de cenas que recebem] ou null */
+function espalhamentoDoArquivo(tipo,valorBruto){
+  if(tipo===ARQ_FONTE)return [ultimoArquivo(valorBruto),ARQ_JUNTOS.slice()];
+  if(ARQ_JUNTOS.indexOf(tipo)<0)return null;
+  return [valorBruto, ARQ_JUNTOS.filter(function(t){ return t!==tipo; })];
+}
 function espalharEnsina(indice,tipo){
-  if(ARQ_JUNTOS.indexOf(tipo)<0)return;
-  const presentes=tiposDoRoteiro().filter(function(t){ return ARQ_JUNTOS.indexOf(t)>=0; });
-  const valor=FLUXO.dias[indice].arquivos[tipo]||'';
+  const plano=espalhamentoDoArquivo(tipo,FLUXO.dias[indice].arquivos[tipo]||'');
+  if(!plano)return;
+  const valor=plano[0], alvos=plano[1];
+  const presentes=tiposDoRoteiro().filter(function(t){ return alvos.indexOf(t)>=0; });
   presentes.filter(function(t){ return t!==tipo; }).forEach(function(t){
     FLUXO.dias[indice].arquivos[t]=valor;
     const campo=document.querySelector('#fxDiasLista .fx-dia[data-dia="'+indice+'"] .fx-arq[data-tipo="'+t+'"]');
