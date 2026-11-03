@@ -134,6 +134,12 @@
   .etapa.erro .det{color:var(--err);margin-left:0;text-align:left;width:100%;}
   /* ---- aba Fluxo ---- */
   .fx-cab{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0;}
+  /* as datas ficam em cima das colunas 1o/2o/3o dia da tabela de baixo:
+     mesma primeira coluna de 120px e os mesmos tres tercos depois */
+  #fxDiarias{grid-template-columns:120px repeat(3,1fr);gap:0;}
+  #fxDiarias>div{padding:0 8px;}
+  /* a 1a diaria comeca na 2a coluna: a 1a casa com a coluna CENA da tabela */
+  #fxDiarias>div:first-child{grid-column-start:2;}
   .fx-cab label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted);font-weight:700;display:block;margin-bottom:5px;}
   .fx-cab select,.fx-cab input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:0.88rem;background:var(--panel);color:var(--ink);}
   .logo-fluxo{display:block;height:22px;width:auto;margin:0 auto 8px;}
@@ -248,6 +254,7 @@
   #main-fluxo,#main-fluxo *{border-color:#000!important;}
   /* na folha a pagina e estreita; sem isto o cabecalho quebraria em 2x2 */
   .fx-cab{grid-template-columns:repeat(4,1fr)!important;}
+  #fxDiarias{grid-template-columns:120px repeat(3,1fr)!important;}
   /* o que foi digitado ou escolhido sai em preto, nao no cinza da tela */
   input,select,textarea{color:#000!important;background:#fff!important;}
   /* nome do video, instrutor, estudio e data de gravacao em laranja,
@@ -5337,13 +5344,13 @@ function espalharDataCena(indice){
     if(campo)campo.value=valor;
   }
 }
-/* RITMO, DEDIL e TAB sao a mesma gravacao: escrever o arquivo em uma delas
-   preenche as outras, na mesma coluna de dia */
+/* RITMO, DEDIL, TAB, TOCA e TOCA SOLO sao a mesma gravacao: escrever o
+   arquivo em uma delas preenche as outras, na mesma coluna de dia */
 function espalharEnsinaArquivos(tipo,coluna){
-  if(ENSINA.indexOf(tipo)<0)return;
+  if(ARQ_JUNTOS.indexOf(tipo)<0)return;
   const valor=(FLUXO.arquivos[tipo]||[])[coluna]||'';
   const tb=document.getElementById('fxArquivos');
-  ENSINA.forEach(function(outro){
+  ARQ_JUNTOS.forEach(function(outro){
     if(outro===tipo || !FLUXO.arquivos[outro])return;   /* so os que o roteiro tem */
     FLUXO.arquivos[outro][coluna]=valor;
     const linha=tb && tb.querySelector('tr[data-tipo="'+outro+'"]');
@@ -5523,12 +5530,15 @@ function ordemJaUsada(indice,tipo){
   const k=lista.indexOf(indice);
   return k>=0?k+1:0;
 }
-/* as cenas de ensina dividem o mesmo arquivo: escrever o numero em qualquer
-   uma delas preenche as outras com o mesmo numero */
+/* ensina, TOCA e TOCA SOLO dividem o mesmo arquivo: escrever o numero em
+   qualquer uma delas preenche as outras com o mesmo numero */
 const ENSINA=['RITMO','DEDIL','TAB'];
+/* RITMO, DEDIL, TAB, TOCA e TOCA SOLO saem na mesma gravacao: dividem o
+   numero do arquivo. Escrever em qualquer uma delas preenche as outras.  */
+const ARQ_JUNTOS=['RITMO','DEDIL','TAB','TOCA','TOCA SOLO'];
 function espalharEnsina(indice,tipo){
-  if(ENSINA.indexOf(tipo)<0)return;
-  const presentes=tiposDoRoteiro().filter(function(t){ return ENSINA.indexOf(t)>=0; });
+  if(ARQ_JUNTOS.indexOf(tipo)<0)return;
+  const presentes=tiposDoRoteiro().filter(function(t){ return ARQ_JUNTOS.indexOf(t)>=0; });
   const valor=FLUXO.dias[indice].arquivos[tipo]||'';
   presentes.filter(function(t){ return t!==tipo; }).forEach(function(t){
     FLUXO.dias[indice].arquivos[t]=valor;
