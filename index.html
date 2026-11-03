@@ -172,6 +172,7 @@
   table.fx td input:focus{outline:2px solid var(--amber);outline-offset:-2px;}
   /* campos cobertos pelo arrasto, prontos para o Delete */
   table.fx td input.marcado{background:var(--amber-soft)!important;}
+  #fxDiasLista input.marcado{background:var(--amber-soft)!important;}
   table.fx td.cena{font-family:'Courier New',monospace;font-weight:700;text-align:center;padding:16px 10px;white-space:nowrap;}
   /* faixa de destaque separando um roteiro do outro */
   table.fx tr.divisor td{background:var(--amber-soft);border:none;padding:11px 2px;text-align:center;
@@ -5336,6 +5337,20 @@ function espalharDataCena(indice){
     if(campo)campo.value=valor;
   }
 }
+/* RITMO, DEDIL e TAB sao a mesma gravacao: escrever o arquivo em uma delas
+   preenche as outras, na mesma coluna de dia */
+function espalharEnsinaArquivos(tipo,coluna){
+  if(ENSINA.indexOf(tipo)<0)return;
+  const valor=(FLUXO.arquivos[tipo]||[])[coluna]||'';
+  const tb=document.getElementById('fxArquivos');
+  ENSINA.forEach(function(outro){
+    if(outro===tipo || !FLUXO.arquivos[outro])return;   /* so os que o roteiro tem */
+    FLUXO.arquivos[outro][coluna]=valor;
+    const linha=tb && tb.querySelector('tr[data-tipo="'+outro+'"]');
+    const campo=linha && linha.querySelectorAll('input')[coluna];
+    if(campo)campo.value=valor;
+  });
+}
 function renderArquivos(){
   const tb=document.getElementById('fxArquivos');
   if(!tb)return;
@@ -5350,11 +5365,16 @@ function renderArquivos(){
   linhas.forEach(function(t){
     if(!FLUXO.arquivos[t])FLUXO.arquivos[t]=['','',''];
     const tr=document.createElement('tr');
+    tr.dataset.tipo=t;
     tr.innerHTML='<td class="cena">'+escapeHtml(t)+'</td>'
       +[0,1,2].map(function(j){return '<td><input type="text" value="'+escapeHtml(FLUXO.arquivos[t][j]||'')+'"></td>';}).join('');
     const ins=tr.querySelectorAll('input');
     [0,1,2].forEach(function(j){
-      ins[j].addEventListener('input',function(){ FLUXO.arquivos[t][j]=ins[j].value; salvarFluxoLocal(); });
+      ins[j].addEventListener('input',function(){
+        FLUXO.arquivos[t][j]=ins[j].value;
+        espalharEnsinaArquivos(t,j);      /* ensina: o mesmo numero nas outras */
+        salvarFluxoLocal();
+      });
     });
     tb.appendChild(tr);
   });
@@ -5497,15 +5517,20 @@ function ordemOrigemArq(indice,tipo){
   lista.push(indice);
   return lista.length;
 }
-/* as cenas de ensina dividem o mesmo arquivo; a primeira que aparecer no
-   roteiro manda nas outras, e cada uma ainda pode ser trocada a mao */
+/* so consulta, sem registrar: 0 quer dizer que a diaria nunca foi escrita a mao */
+function ordemJaUsada(indice,tipo){
+  const lista=(FLUXO.arqOrigens&&FLUXO.arqOrigens[tipo])||[];
+  const k=lista.indexOf(indice);
+  return k>=0?k+1:0;
+}
+/* as cenas de ensina dividem o mesmo arquivo: escrever o numero em qualquer
+   uma delas preenche as outras com o mesmo numero */
 const ENSINA=['RITMO','DEDIL','TAB'];
 function espalharEnsina(indice,tipo){
   if(ENSINA.indexOf(tipo)<0)return;
   const presentes=tiposDoRoteiro().filter(function(t){ return ENSINA.indexOf(t)>=0; });
-  if(presentes[0]!==tipo)return;                  /* so a primeira delas espalha */
   const valor=FLUXO.dias[indice].arquivos[tipo]||'';
-  presentes.slice(1).forEach(function(t){
+  presentes.filter(function(t){ return t!==tipo; }).forEach(function(t){
     FLUXO.dias[indice].arquivos[t]=valor;
     const campo=document.querySelector('#fxDiasLista .fx-dia[data-dia="'+indice+'"] .fx-arq[data-tipo="'+t+'"]');
     if(campo)campo.value=valor;
@@ -5519,6 +5544,9 @@ function espalharArquivoDia(indice,tipo){
   /* vai ate o fim da lista guardada, nao so ate as diarias visiveis:
      aumentando a quantidade depois, as que aparecem ja vem com o numero certo */
   for(let j=indice+1;j<FLUXO.dias.length;j++){
+    /* a diaria que virou 3ª alteracao fica so com o que foi escrito nela:
+       ninguem mais passa por cima dela                                     */
+    if(ordemJaUsada(j,tipo)>=3)continue;
     FLUXO.dias[j].arquivos[tipo]=valor;
     const campo=document.querySelector('#fxDiasLista .fx-dia[data-dia="'+j+'"] .fx-arq[data-tipo="'+tipo+'"]');
     if(campo)campo.value=valor;
@@ -5626,31 +5654,52 @@ function irParaCampo(passo,campo){
    texto de um para o outro. Aqui o arrasto marca os campos por onde passou;
    Delete limpa todos. Dentro de um campo so, a selecao de texto e a do
    navegador, como sempre.                                                  */
-function camposDaTabela(){
-  return Array.from(document.querySelectorAll('#fxCenas input')).filter(function(c){
+/* Onde da pra marcar varios campos de uma vez. Cada area conta sozinha: a
+   faixa nunca pula de um bloco para outro.                                 */
+const AREAS_MARCA=['fxCenas','fxArquivos','fxDiasLista'];
+function areaDeMarcacao(el){
+  if(!el || !el.closest)return null;
+  for(let i=0;i<AREAS_MARCA.length;i++){
+    const a=el.closest('#'+AREAS_MARCA[i]);
+    if(a)return a;
+  }
+  return null;
+}
+function camposDaArea(area){
+  if(!area)return [];
+  return Array.from(area.querySelectorAll('input')).filter(function(c){
     const td=c.closest('td');
     return !td || window.getComputedStyle(td).display!=='none';
   });
 }
-let selCampos={de:null,ate:null,arrastando:false,pendente:null};
+function camposDaTabela(){ return camposDaArea(document.getElementById('fxCenas')); }
+let selCampos={de:null,ate:null,arrastando:false,pendente:null,area:null};
 function faixaDeCampos(){
   if(selCampos.de===null)return null;
   return [Math.min(selCampos.de,selCampos.ate),Math.max(selCampos.de,selCampos.ate)];
 }
 function pintarCampos(){
   const f=faixaDeCampos();
-  camposDaTabela().forEach(function(c,i){
-    c.classList.toggle('marcado', !!f && i>=f[0] && i<=f[1]);
+  AREAS_MARCA.forEach(function(id){
+    const area=document.getElementById(id);
+    if(!area)return;
+    const marca=(f && selCampos.area===area);
+    camposDaArea(area).forEach(function(c,i){
+      c.classList.toggle('marcado', !!marca && i>=f[0] && i<=f[1]);
+    });
   });
 }
-function limparMarcacao(){ selCampos={de:null,ate:null,arrastando:false,pendente:null}; pintarCampos(); }
+function limparMarcacao(){
+  selCampos={de:null,ate:null,arrastando:false,pendente:null,area:null};
+  pintarCampos();
+}
 let apagandoFaixa=false;   /* avisa o resto que este 'input' veio da limpeza */
 function apagarCamposMarcados(){
   const f=faixaDeCampos();
   if(!f || f[0]===f[1])return false;
   apagandoFaixa=true;
   try{
-    camposDaTabela().forEach(function(c,i){
+    camposDaArea(selCampos.area).forEach(function(c,i){
       if(i<f[0] || i>f[1])return;
       c.value='';
       c.dispatchEvent(new Event('input',{bubbles:true}));
@@ -5660,10 +5709,18 @@ function apagarCamposMarcados(){
   return true;
 }
 (function(){
-  const tabela=document.getElementById('fxCenas');
+  const tabela=document.getElementById('main-fluxo') || document.getElementById('fxCenas');
   if(!tabela)return;
-  const indiceCampo=function(alvo){
-    return alvo && alvo.tagName==='INPUT' ? camposDaTabela().indexOf(alvo) : -1;
+  /* o indice e dentro da area do proprio campo; areas diferentes nao se
+     misturam, entao uma faixa da tabela de cenas nunca apaga as diarias */
+  const indiceCampo=function(alvo,mesmaArea){
+    if(!alvo || alvo.tagName!=='INPUT')return -1;
+    const area=areaDeMarcacao(alvo);
+    if(!area)return -1;
+    if(mesmaArea && selCampos.area && selCampos.area!==area)return -1;
+    const i=camposDaArea(area).indexOf(alvo);
+    if(i>=0 && !selCampos.area)selCampos.area=area;
+    return i;
   };
   tabela.addEventListener('mousedown',function(e){
     if(e.button!==0)return;
@@ -5674,11 +5731,11 @@ function apagarCamposMarcados(){
   });
   tabela.addEventListener('mouseover',function(e){
     if(!(e.buttons&1))return;
-    const i=indiceCampo(e.target);
+    const i=indiceCampo(e.target,true);
     if(i<0)return;
     if(!selCampos.arrastando){
       if(selCampos.pendente===null || i===selCampos.pendente)return;
-      selCampos={de:selCampos.pendente,ate:i,arrastando:true,pendente:null};
+      selCampos={de:selCampos.pendente,ate:i,arrastando:true,pendente:null,area:selCampos.area};
     }else{
       if(i===selCampos.ate)return;
       selCampos.ate=i;
@@ -5701,7 +5758,7 @@ function apagarCamposMarcados(){
   document.addEventListener('mousedown',function(e){
     if(!faixaDeCampos())return;
     if(Date.now()-tocouAgora<700)return;   /* mouse falso, nascido de um toque */
-    if(!(e.target.closest && e.target.closest('#fxCenas')))limparMarcacao();
+    if(!areaDeMarcacao(e.target))limparMarcacao();
   });
 
   /* ----- o mesmo arrasto, com o dedo, no iPhone e no iPad -----
@@ -5721,14 +5778,14 @@ function apagarCamposMarcados(){
   const campoNoPonto=function(x,y){
     const el=document.elementFromPoint(x,y);
     if(!el || el.tagName!=='INPUT')return null;
-    return (el.closest && el.closest('#fxCenas')) ? el : null;
+    return areaDeMarcacao(el) ? el : null;
   };
   const soltarDedo=function(){
     if(dedo.relogio)clearTimeout(dedo.relogio);
     dedo={relogio:null,x:0,y:0,armado:false,esticou:false};
   };
   const abrirTeclado=function(i){
-    const alvo=camposDaTabela()[i];
+    const alvo=camposDaArea(selCampos.area)[i];
     if(!alvo || !alvo.focus)return;
     alvo.focus();
     if(alvo.setSelectionRange)try{alvo.setSelectionRange(alvo.value.length,alvo.value.length)}catch(x){}
@@ -5736,7 +5793,7 @@ function apagarCamposMarcados(){
   tabela.addEventListener('touchstart',function(e){
     soltarDedo(); tocouAgora=Date.now();
     if(e.touches.length!==1)return;
-    const t=e.touches[0], i=indiceCampo(campoNoPonto(t.clientX,t.clientY));
+    const t=e.touches[0], i=indiceCampo(campoNoPonto(t.clientX,t.clientY),true);
     if(i<0){ limparMarcacao(); return; }
     if(selCampos.de!==null){
       /* ja esta marcando: este toque estica a faixa ate aqui */
@@ -5745,11 +5802,12 @@ function apagarCamposMarcados(){
       pintarCampos();
       return;
     }
+    const areaToque=selCampos.area;   /* guarda antes de limpar, senao se perde */
     limparMarcacao();
     dedo.x=t.clientX; dedo.y=t.clientY;
     dedo.relogio=setTimeout(function(){
       dedo.armado=true;
-      selCampos={de:i,ate:i,arrastando:true,pendente:null};
+      selCampos={de:i,ate:i,arrastando:true,pendente:null,area:areaToque};
       pintarCampos();            /* o campo acende: deu pra marcar */
       if(navigator.vibrate)try{navigator.vibrate(10)}catch(x){}
     },ESPERA_DEDO);
@@ -5763,7 +5821,7 @@ function apagarCamposMarcados(){
       return;
     }
     if(e.cancelable)e.preventDefault();   /* segura a rolagem enquanto marca */
-    const i=indiceCampo(campoNoPonto(t.clientX,t.clientY));
+    const i=indiceCampo(campoNoPonto(t.clientX,t.clientY),true);
     if(i<0 || i===selCampos.ate)return;
     selCampos.ate=i;
     pintarCampos();
@@ -5785,13 +5843,13 @@ function apagarCamposMarcados(){
        pra ele, o toque nunca.                                              */
     const t=(e.changedTouches && e.changedTouches[0]) || null;
     if(!t)return;
-    const i=indiceCampo(campoNoPonto(t.clientX,t.clientY));
+    const i=indiceCampo(campoNoPonto(t.clientX,t.clientY),true);
     if(i<0){ ultimoToque={i:-1,t:0,x:0,y:0}; return; }
     const agora=Date.now();
     if(ultimoToque.i===i && agora-ultimoToque.t<ESPERA_DOIS &&
        Math.abs(t.clientX-ultimoToque.x)<FOLGA_DOIS && Math.abs(t.clientY-ultimoToque.y)<FOLGA_DOIS){
       ultimoToque={i:-1,t:0,x:0,y:0};
-      selCampos={de:i,ate:i,arrastando:false,pendente:null};
+      selCampos={de:i,ate:i,arrastando:false,pendente:null,area:selCampos.area};
       pintarCampos();            /* o campo acende: agora e so tocar no ultimo */
       if(navigator.vibrate)try{navigator.vibrate(10)}catch(x){}
       return;
@@ -5812,21 +5870,23 @@ function apagarCamposMarcados(){
   });
   document.addEventListener('touchstart',function(e){
     if(!faixaDeCampos())return;
-    if(!(e.target.closest && e.target.closest('#fxCenas')))limparMarcacao();
+    if(!areaDeMarcacao(e.target))limparMarcacao();
   },{passive:true});
   /* digitar quer dizer que nao era pra apagar: desfaz a marcacao */
   tabela.addEventListener('input',function(e){
     if(apagandoFaixa || e.target.tagName!=='INPUT')return;
+    if(!areaDeMarcacao(e.target))return;
     if(selCampos.de!==null)limparMarcacao();
   });
   /* o apagar do teclado da tela nao chega como Delete em todo aparelho:
      o beforeinput chega sempre */
   tabela.addEventListener('beforeinput',function(e){
     if(e.inputType!=='deleteContentBackward' && e.inputType!=='deleteContentForward')return;
+    if(!areaDeMarcacao(e.target))return;
     if(apagarCamposMarcados())e.preventDefault();
   });
   tabela.addEventListener('keydown',function(e){
-    if(e.target.tagName!=='INPUT')return;
+    if(e.target.tagName!=='INPUT' || !areaDeMarcacao(e.target))return;
     /* com a faixa marcada, o apagar vale pela faixa — mesmo com o campo em
        foco, que e como fica depois do arrasto com o dedo */
     if(e.key==='Delete' || e.key==='Backspace'){
