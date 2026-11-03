@@ -253,8 +253,7 @@
      So 'border-color': larguras e lados desligados continuam como estao.    */
   #main-fluxo,#main-fluxo *{border-color:#000!important;}
   /* na folha a pagina e estreita; sem isto o cabecalho quebraria em 2x2 */
-  .fx-cab{grid-template-columns:repeat(4,1fr)!important;}
-  #fxDiarias{grid-template-columns:120px repeat(3,1fr)!important;}
+  #fxCabecalho{grid-template-columns:repeat(4,1fr)!important;}
   /* o que foi digitado ou escolhido sai em preto, nao no cinza da tela */
   input,select,textarea{color:#000!important;background:#fff!important;}
   /* nome do video, instrutor, estudio e data de gravacao em laranja,
@@ -418,7 +417,7 @@
   <!-- a mesma logo do cabecalho, sem repetir os dados dela no arquivo -->
   <script>(function(){var a=document.getElementById('logoCc'),b=document.getElementById('logoFluxo');if(a&&b)b.src=a.src;})();</script>
 
-  <div class="fx-cab">
+  <div class="fx-cab" id="fxCabecalho">
     <div><label>Instrutor</label><select id="fxInstrutor"></select></div>
     <div><label>Tipo</label><select id="fxTipo"></select></div>
     <div><label>Estúdio</label><select id="fxEstudio"></select></div>
@@ -491,11 +490,12 @@
          abre o seletor de um campo escondido.
          O accept so com tipos de documento (nada de imagem ou video) faz o
          iPhone e o iPad pularem o menu "Fototeca / Tirar foto" e abrirem
-         direto o Arquivos/iCloud. O .fluxo entra na lista pelos arquivos
+         direto o Arquivos/iCloud. O .pdf entra porque o PDF que a pagina
+         salva carrega o fluxo dentro dele. O .fluxo entra na lista pelos arquivos
          antigos no computador; o iOS ignora essa extensao, que ele nao
          conhece, e por isso arquivo .fluxo aparece cinza la. -->
     <input type="file" id="fxArquivoFluxo" class="arquivo-fora"
-           accept=".json,.fluxo,application/json">
+           accept=".pdf,.json,.fluxo,application/pdf,application/json">
     <button class="mini" id="btnTrocarPasta" onclick="salvarTudo(true)">Trocar pasta</button>
     <span class="folder-name" id="fxPastaNome"></span>
     <span class="copied" id="fxSalvoOk" style="display:none">✓ salvo</span>
@@ -4424,6 +4424,17 @@ async function montarPdfFluxo(diz){
     return {altura:alturaDe(m), cortes:m.cortes};
   }),PDF_UTIL_Y,PDF_ESPACO);
   const pdf=new window.jspdf.jsPDF({orientation:'p',unit:'mm',format:'a4'});
+  /* o fluxo inteiro vai guardado dentro da ficha de informacoes do PDF, que
+     ninguem ve. Assim o "Abrir fluxo" consegue voltar tudo preenchido a partir
+     do proprio PDF — no iPad e no iPhone esse e o unico arquivo que sai.    */
+  try{
+    const dentro=await empacotarTexto(JSON.stringify(pacoteFluxo()));
+    pdf.setProperties({
+      title:(FLUXO.titulo||'Fluxo'),
+      subject:'Fluxo de gravação — Cifra Club',
+      keywords:MARCA_FLUXO+dentro
+    });
+  }catch(e){ /* sem a ficha o PDF continua valendo como folha */ }
   let paginaAtual=0;
   plano.forEach(function(pe){
     while(paginaAtual<pe.pagina){ pdf.addPage(); paginaAtual++; }
@@ -4445,12 +4456,14 @@ function baixar(nome,blob){
    qualquer coisa. A folha de compartilhamento do proprio sistema pula essa
    etapa e ja oferece "Salvar em Arquivos" / iCloud. Se o aparelho nao tiver
    essa folha, ou se ela falhar, cai no download de sempre.                  */
-async function entregar(nome,blob,tipo){
+async function entregar(lista){
   try{
     if(navigator.canShare && navigator.share && window.File){
-      const arq=new File([blob],nome,{type:tipo||blob.type||'application/octet-stream'});
-      if(navigator.canShare({files:[arq]})){
-        await navigator.share({files:[arq]});
+      const arqs=lista.map(function(x){
+        return new File([x.blob],x.nome,{type:x.tipo||x.blob.type||'application/octet-stream'});
+      });
+      if(navigator.canShare({files:arqs})){
+        await navigator.share({files:arqs});   /* os dois de uma vez na mesma folha */
         return 'compartilhou';
       }
     }
@@ -4458,7 +4471,7 @@ async function entregar(nome,blob,tipo){
     /* desistir da folha nao e erro: nao baixa nada, foi escolha da pessoa */
     if(e && e.name==='AbortError')return 'cancelou';
   }
-  baixar(nome,blob);
+  lista.forEach(function(x){ baixar(x.nome,x.blob); });
   return 'baixou';
 }
 /* Um botao so: monta o PDF e o arquivo do fluxo e guarda os dois no mesmo lugar.
@@ -4499,7 +4512,10 @@ async function salvarTudo(trocarPasta){
       const el=document.getElementById('fxPastaNome');
       if(el){ el.textContent=pasta.name; el.classList.add('ativa'); }
     }else{
-      await entregar(base+'.pdf',pdf,'application/pdf');
+      /* sem pasta (Safari, iPad, iPhone): os dois arquivos vao juntos na folha
+         de compartilhamento, pra caírem no iCloud de uma vez so             */
+      await entregar([{nome:base+'.pdf',blob:pdf,tipo:'application/pdf'},
+                      {nome:base+'.json',blob:dados,tipo:'application/json'}]);
     }
     diz('Salvar');
     flash('fxSalvoOk');
@@ -4606,6 +4622,8 @@ function deBase64(txt){
   for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i);
   return b;
 }
+/* etiqueta que marca a ficha do PDF como "tem um fluxo aqui dentro" */
+const MARCA_FLUXO='fluxo-cifra:';
 async function empacotarTexto(txt){
   const bytes=new TextEncoder().encode(txt);
   if(!window.CompressionStream)return 'p'+paraBase64(bytes);
@@ -4705,27 +4723,60 @@ async function lerFluxoDoLink(){
     return false;
   }
 }
+/* le o fluxo que mora dentro da ficha de informacoes de um PDF salvo pela
+   propria pagina. Devolve null quando o PDF nao tem fluxo nenhum dentro.   */
+async function fluxoDentroDoPdf(dados){
+  await carregarLibsPdf();
+  await prepararWorker();
+  const pdf=await window.pdfjsLib.getDocument({data:new Uint8Array(dados)}).promise;
+  const meta=await pdf.getMetadata();
+  const info=(meta&&meta.info)||{};
+  const campos=[info.Keywords,info.Subject,info.Title];
+  for(let i=0;i<campos.length;i++){
+    const m=campos[i] && new RegExp(MARCA_FLUXO+'([A-Za-z0-9_-]+)').exec(campos[i]);
+    if(m)return JSON.parse(await desempacotarTexto(m[1]));
+  }
+  return null;
+}
 async function abrirArquivoFluxo(arq){
   if(!arq)return;
   /* ler um arquivo que o iCloud esta sincronizando falha na primeira vez */
-  let texto=null;
-  for(let t=0;t<2;t++){
-    try{ texto=await arq.text(); break; }
-    catch(e){
+  let dados=null, texto=null, leu=false;
+  for(let t=0;t<2 && !leu;t++){
+    try{
+      if(typeof arq.arrayBuffer==='function')dados=await arq.arrayBuffer();
+      else texto=await arq.text();
+      leu=true;
+    }catch(e){
       if(t===0 && estadoVelho(e))continue;
       alert('Não deu para ler este arquivo. Se ele está no iCloud, pode ser que '+
             'ainda esteja baixando: espere o ícone de nuvem sumir e tente de novo.');
       return;
     }
   }
+  if(!leu)return;
+  const bytes=dados?new Uint8Array(dados):null;
+  const ehPdf=bytes
+    ? (bytes.length>4 && bytes[0]===0x25 && bytes[1]===0x50 && bytes[2]===0x44 && bytes[3]===0x46)
+    : /^%PDF/.test(texto||'');
   try{
-    const pacote=JSON.parse(texto);
+    let pacote;
+    if(ehPdf){
+      pacote=await fluxoDentroDoPdf(dados||new TextEncoder().encode(texto).buffer);
+      if(!pacote){
+        alert('Este PDF não tem fluxo guardado dentro dele. Use um PDF que esta '+
+              'página salvou — o do roteiro não serve.');
+        return;
+      }
+    }else{
+      pacote=JSON.parse(bytes?new TextDecoder().decode(bytes):texto);
+    }
     if(!pacote || typeof pacote!=='object')throw new Error('conteúdo inesperado');
     aplicarPacote(pacote);
     flash('fxSalvoOk');
   }catch(e){
-    alert('Este arquivo não é um fluxo salvo. Escolha o arquivo com o nome da '+
-          'aula que está na pasta "'+PASTA_FLUXOS+'".');
+    alert('Este arquivo não é um fluxo salvo. Escolha o PDF que esta página salvou, '+
+          'ou o arquivo com o nome da aula que está na pasta "'+PASTA_FLUXOS+'".');
   }
 }
 
