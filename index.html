@@ -3430,6 +3430,10 @@ function agendarReprocessar(){
   },900);
 }
 ta.addEventListener('input',()=>{
+  /* o roteiro na tela deixou de ser o do PDF: o BPM e o instrutor lidos de
+     la nao valem mais para o que vier depois                              */
+  bpmDoPdf={ensina:'',toca:''};
+  instrutorDoPdf='';
   agendarReprocessar();
   clearTimeout(typingTimer);
   const anterior=valorAtual;
@@ -5102,7 +5106,10 @@ let chaveAtualFluxo=null;
 function carregarFluxoLocal(){
   try{
     const bruto=localStorage.getItem(chaveFluxo());
-    if(bruto){ const d=JSON.parse(bruto); if(d&&typeof d==='object')FLUXO=Object.assign(FLUXO,d); }
+    /* parte sempre de um fluxo vazio: o que o arquivo guardado nao tiver fica
+       em branco, em vez de herdar o que estava na tela                      */
+    if(bruto){ const d=JSON.parse(bruto);
+      if(d&&typeof d==='object')FLUXO=Object.assign(fluxoVazio(d.modelo||FLUXO.modelo||'padrao'),d); }
   }catch(e){}
   normalizarFluxo();
   chaveAtualFluxo=chaveFluxo();
@@ -5129,8 +5136,15 @@ function sincronizarChaveFluxo(){
   chaveAtualFluxo=nova;
   let salvo=null;
   try{ const b=localStorage.getItem(nova); if(b)salvo=JSON.parse(b); }catch(e){}
-  if(salvo && typeof salvo==='object'){ FLUXO=Object.assign(FLUXO,salvo); normalizarFluxo(); repintarFluxo(); }
-  else salvarFluxoLocal();
+  /* Trocar de aula comeca do zero: guitarra, violao, BPM, observacoes e o
+     resto ficam com a aula anterior, onde foram preenchidos. Antes isso
+     vazava para a aula nova — e ia parar dentro do PDF salvo dela.
+     So o tipo de fluxo escolhido continua, pra nao ter que remarcar.       */
+  const modelo=(salvo && salvo.modelo) || FLUXO.modelo || 'padrao';
+  FLUXO=Object.assign(fluxoVazio(modelo), (salvo && typeof salvo==='object') ? salvo : {});
+  normalizarFluxo();
+  repintarFluxo();
+  salvarFluxoLocal();
 }
 /* redesenha a aba inteira com o FLUXO atual */
 function repintarFluxo(){
