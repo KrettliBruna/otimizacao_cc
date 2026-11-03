@@ -37,11 +37,13 @@
      pagina comeca embaixo da barra de status do sistema. O env(safe-area-*)
      desce o cabecalho o tanto que aquele aparelho precisa — zero no
      computador. Sem isso o cabecalho sai cortado e embacado. */
-  header{padding:calc(env(safe-area-inset-top,0px) + 14px)
-                 calc(env(safe-area-inset-right,0px) + 30px) 14px
+  header{padding:calc(env(safe-area-inset-top,0px) + 9px)
+                 calc(env(safe-area-inset-right,0px) + 30px) 9px
                  calc(env(safe-area-inset-left,0px) + 30px);
     border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:18px;}
-  .logo{height:26px;width:auto;display:block;flex-shrink:0;}
+  /* a logo do cabecalho e so da tela: o cabecalho nao entra no PDF.
+     A do PDF e a .logo-fluxo, que fica acima do nome do video.          */
+  .logo{height:44px;width:auto;display:block;flex-shrink:0;}
   .theme-toggle{flex-shrink:0;white-space:nowrap;}
   .wrap{padding:22px 30px 60px;max-width:1080px;margin:0 auto;}
   .howto{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:9px;padding:14px 18px;margin-bottom:18px;font-size:0.88rem;}
