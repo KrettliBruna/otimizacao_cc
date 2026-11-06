@@ -209,6 +209,80 @@
   .fx-modo-padrao .fx-so-padrao{display:block;}
   .fx-modo-diarias .fx-so-diarias{display:block;}
   .fx-modo-micro .fx-so-micro{display:block;}
+  /* no modo microaula a tabela de cenas comum da lugar a tabela da microaula */
+  .fx-modo-micro #fxBlocoCenas{display:none;}
+  /* e os blocos de violao e guitarra saem: a tabela ja tem a coluna
+     "Guitarra / violao", uma por aula. Nos outros modelos continuam. */
+  .fx-modo-micro #fxInstrumentos{display:none;}
+  /* tipo e estudio nao valem para microaula: o cabecalho fica com dois */
+  .fx-modo-micro .fx-nao-micro{display:none;}
+  .fx-modo-micro #fxCabecalho{grid-template-columns:repeat(2,1fr);}
+  /* ref visual: cola com Ctrl+V ou arrasta a imagem pra cima do quadrinho */
+  .fx-ref{min-height:54px;border:1px dashed var(--line);border-radius:6px;display:flex;
+    align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--paper);}
+  .fx-ref:focus{outline:2px solid var(--amber);outline-offset:1px;}
+  .fx-ref.hover{border-color:var(--amber);background:var(--amber-soft);}
+  .fx-ref img{display:block;width:100%;height:auto;}
+  .fx-ref .dica{font-size:0.62rem;color:var(--muted);text-align:center;line-height:1.25;padding:4px;}
+  /* fundo e recorte sao duas informacoes diferentes: precisam de ar entre
+     elas para nao serem lidas como um bloco so */
+  .fx-luz{display:grid;grid-template-columns:1fr;gap:22px;padding:10px 0;}
+  .fx-luz>div>.fx-luzcampo{margin-top:3px;}
+  /* FUNDO e RECORTE sao lidos no estudio, de longe: letra maior, com um
+     desenho que separa bem as maiusculas em vez de apertar tudo */
+  .fx-luz label{font-size:0.78rem;text-transform:uppercase;letter-spacing:0.12em;
+    font-family:"Avenir Next","Segoe UI",Inter,system-ui,sans-serif;
+    color:var(--amber);font-weight:600;display:block;opacity:0.9;}
+  .fx-luz input{width:100%;}
+  textarea.fx-musica{width:100%;border:none;background:transparent;color:var(--ink);
+    padding:16px 8px;font-size:0.86rem;font-family:inherit;resize:none;overflow:hidden;
+    line-height:1.3;text-align:center;display:block;}
+  textarea.fx-musica:focus{outline:2px solid var(--amber);outline-offset:-2px;}
+  /* microaula: o take, a iluminacao e o instrumento sao lidos de longe no
+     estudio, entao saem maiores que o resto da tabela */
+  table.fx td input.fx-take{font-size:1.45rem;font-weight:700;color:var(--amber);}
+  .fx-luz .fx-luzcampo{font-size:1.1rem;font-weight:600;}
+  table.fx td input.fx-inst{font-size:1.1rem;font-weight:600;}
+  /* fundo e recorte sao escritos a mao e as vezes em varias linhas
+     (HSI vem em tres): o campo cresce em altura em vez de cortar */
+  textarea.fx-luzcampo{width:100%;border:none;background:transparent;color:var(--ink);
+    font-family:inherit;line-height:1.25;resize:none;overflow:hidden;display:block;padding:0;}
+  textarea.fx-luzcampo:focus{outline:2px solid var(--amber);outline-offset:-2px;}
+  .fx-luzrot{display:flex;align-items:center;justify-content:space-between;gap:4px;}
+  /* listinha para repetir um fundo ja usado na aula */
+  select.fx-repetir{appearance:none;-webkit-appearance:none;border:none;background:transparent;
+    color:var(--muted);font-size:0.7rem;cursor:pointer;padding:0 2px;width:16px;text-align:center;}
+  select.fx-repetir:hover{color:var(--amber);}
+  /* faixa que separa um bloco de luz do outro */
+  table.fx tr.fx-faixa td{background:var(--amber-soft);border:none;padding:8px 10px;
+    font-size:0.72rem;letter-spacing:0.14em;color:var(--amber);font-weight:700;text-transform:uppercase;}
+  table.fx tr.fx-faixa .q{letter-spacing:0;font-weight:600;opacity:0.75;text-transform:none;}
+  /* tirar uma aula da lista */
+  .fx-x{border:none;background:transparent;color:var(--muted);font-size:1rem;
+    line-height:1;cursor:pointer;padding:2px 5px;margin-left:4px;border-radius:5px;}
+  .fx-x:hover{background:var(--amber-soft);color:var(--amber);}
+  /* armado, o botao toma o lugar do nome da cena, dentro da propria
+     celula: crescendo para o lado ele cobriria a coluna do take */
+  .fx-x.pronto{background:var(--amber);color:var(--on-amber);font-size:0.58rem;
+    font-weight:700;letter-spacing:0.04em;padding:5px 7px;margin:0;}
+  table.fx td.cena.armado .fx-cena-nome{display:none;}
+  table.fx td.cena.armado{padding-left:4px;padding-right:4px;}
+  #fxMicroEntrada{margin:0 0 12px;}
+  #fxMicroEntrada label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;
+    color:var(--muted);font-weight:700;display:block;margin-bottom:5px;}
+  #fxMicroEntrada textarea{width:100%;border:1px solid var(--line);border-radius:8px;
+    background:var(--panel);color:var(--ink);padding:9px 11px;font:inherit;
+    font-size:0.86rem;resize:vertical;line-height:1.4;}
+  #fxMicroEntrada .fx-micro-bts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  /* um em cima do outro e bem separados: na folha ela circula o escolhido
+     com a caneta, e o circulo nao pode encostar no outro */
+  /* as duas classes juntas: a regra geral .fx-chips vem depois no arquivo
+     e, com o mesmo peso, apagaria o espacamento daqui */
+  .fx-chips.fx-diag{flex-direction:column;align-items:center;justify-content:center;
+    gap:34px;flex-wrap:nowrap;margin:0;padding:14px 0;}
+  .fx-diag .fx-chip{padding:5px 9px;font-size:0.7rem;}
+  .fx-nota{margin-top:8px;font-size:0.78rem;color:var(--muted);line-height:1.4;}
+  .fx-nota b{color:var(--ink);}
   .fx-dias{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:10px;}
   .fx-dia{border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--paper);}
   .fx-dia .num{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:700;margin-bottom:5px;}
@@ -229,6 +303,27 @@
   .fx-livre{width:100%;min-height:62px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font-size:0.88rem;font-family:inherit;resize:vertical;}
   .fx-outro{display:block;}
   .fx-outro .fx-grupo{display:block;margin-bottom:5px;}
+  /* ---- celular: a tabela de cenas nao cabe com as larguras do computador.
+     O corte e em 560px para nao pegar o PDF, que e desenhado a 718px.
+     As larguras viram porcentagem para caber em qualquer celular.      ---- */
+  @media(max-width:560px){
+    #fxBlocoCenas table.fx th:nth-child(1){width:22px!important;}
+    #fxBlocoCenas table.fx th:nth-child(2){width:18%!important;}
+    #fxBlocoCenas table.fx th:nth-child(3){width:11%!important;}
+    #fxBlocoCenas table.fx th:nth-child(4){width:17%!important;}
+    #fxBlocoCenas table.fx th#fxColData{width:24%!important;}
+    #fxBlocoCenas table.fx th#fxColObs{width:auto!important;}
+    table.fx td input{padding:13px 3px!important;font-size:0.74rem;}
+    table.fx td.cena{padding:8px 3px;font-size:0.68rem;white-space:normal;word-break:break-word;}
+    table.fx th{padding:7px 3px;font-size:0.58rem;letter-spacing:0.02em;}
+    table.fx td.diaria{font-size:0.6rem;}
+    /* a data e maior que o resto de proposito; no celular, so o tanto que
+       cabe a data inteira na coluna */
+    table.fx td input.fx-datacena{font-size:0.72rem;letter-spacing:-0.02em;}
+    table.fx td input.fx-take{font-size:1rem;}
+    .fx-luz .fx-luzcampo,table.fx td input.fx-inst{font-size:0.8rem;}
+    table.fx tr.fx-faixa td{font-size:0.6rem;letter-spacing:0.08em;padding:6px 6px;}
+  }
   @media(max-width:760px){.fx-cab{grid-template-columns:1fr 1fr;}
     /* no celular nao cabe alinhar as datas com as colunas da tabela:
        uma embaixo da outra, cada uma na largura toda */
@@ -263,6 +358,14 @@
   #main-fluxo,#main-fluxo *{border-color:#000!important;}
   /* na folha a pagina e estreita; sem isto o cabecalho quebraria em 2x2 */
   #fxCabecalho{grid-template-columns:repeat(4,1fr)!important;}
+  /* na microaula sobram dois campos: eles ocupam a largura toda */
+  .fx-modo-micro #fxCabecalho{grid-template-columns:repeat(2,1fr)!important;}
+  .fx-modo-micro .fx-nao-micro{display:none!important;}
+  /* na folha, quadrinho de ref vazio nao vira caixa pontilhada nem dica */
+  .fx-ref{border:none!important;min-height:0!important;background:transparent!important;}
+  .fx-ref .dica{display:none!important;}
+  .fx-luz label{color:#c8621f!important;}
+  .fx-nota,.fx-nota b{color:#000!important;}
   /* o PDF e desenhado a 718px, que cai na regra de tela estreita: aqui o
      bloco das datas volta a ficar alinhado com as colunas da tabela */
   #fxDiarias{grid-template-columns:120px repeat(3,1fr)!important;gap:0!important;}
@@ -276,6 +379,24 @@
   .pdf-campo.fx-data,.pdf-campo.fx-datacena{color:#c8621f!important;font-weight:700;}
   #fxTitulo,.pdf-campo.fx-titulo{font-size:1.4rem!important;}
   .fx-data,.fx-datacena,.pdf-campo.fx-data,.pdf-campo.fx-datacena{font-size:1.02rem!important;}
+  /* a microaula tem 7 colunas: no papel o cabecalho e o nome da cena sairiam
+     na fonte do corpo (16px) e nao caberiam. Aqui voltam ao tamanho da tela. */
+  #fxBlocoMicro table.fx th{font-size:0.6rem!important;padding:6px 3px!important;}
+  #fxBlocoMicro td.cena{font-size:0.78rem!important;padding:8px 4px!important;}
+  #fxBlocoMicro td{padding:0!important;}
+  #fxBlocoMicro .fx-luz label{font-size:0.66rem!important;letter-spacing:0.1em!important;}
+  #fxBlocoMicro .fx-diag .fx-chip{font-size:0.64rem!important;padding:4px 7px!important;}
+  /* na folha a distancia entre RITMO e TAB e o que deixa circular um so
+     com a caneta sem o traco encostar no outro */
+  #fxBlocoMicro .fx-diag{gap:44px!important;padding:16px 0!important;}
+  /* e o mesmo vale para fundo e recorte, que sao lidos separados */
+  #fxBlocoMicro .fx-luz{gap:24px!important;padding:12px 0!important;}
+  .fx-take,.pdf-campo.fx-take{color:#c8621f!important;font-weight:700;font-size:1.45rem!important;}
+  .fx-luzcampo,.pdf-campo.fx-luzcampo,.fx-inst,.pdf-campo.fx-inst{font-size:1.1rem!important;font-weight:600;}
+  /* a faixa do bloco de luz sai colorida, como as diarias */
+  table.fx tr.fx-faixa td{background:#f4e6d8!important;color:#c8621f!important;
+    border-right:none!important;font-size:0.68rem!important;padding:7px 9px!important;
+    -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
   /* dentro da tabela o campo fica transparente: fundo branco por cima
      comia as linhas que dividem as colunas */
   table.fx td input,table.fx td input.marcado{background:transparent!important;}
@@ -433,8 +554,8 @@
 
   <div class="fx-cab" id="fxCabecalho">
     <div><label>Instrutor</label><select id="fxInstrutor"></select></div>
-    <div><label>Tipo</label><select id="fxTipo"></select></div>
-    <div><label>Estúdio</label><select id="fxEstudio"></select></div>
+    <div class="fx-nao-micro"><label>Tipo</label><select id="fxTipo"></select></div>
+    <div class="fx-nao-micro"><label>Estúdio</label><select id="fxEstudio"></select></div>
     <div><label>Instrumento</label><select id="fxInstrumento"></select></div>
   </div>
 
@@ -450,6 +571,37 @@
       <th style="width:27.4%">Take(s)</th>
       <th id="fxColObs">Observações</th>
     </tr></thead><tbody id="fxCenas"></tbody></table>
+  </div>
+
+  <div id="fxBlocoMicro" class="fx-so-micro">
+    <div class="step-label" style="margin-top:20px">Microaula</div>
+    <!-- A microaula nao sai de roteiro: os nomes vem dos cards do GitHub ou
+         do Discord. Esta caixa e o comeco do trabalho, entao vem antes da
+         tabela. So existe na tela, nunca no PDF.                          -->
+    <div class="nao-no-pdf" id="fxMicroEntrada">
+      <label for="fxMicroNomes">Aulas — cole a lista dos nomes, uma por linha</label>
+      <textarea id="fxMicroNomes" rows="3"
+        placeholder="Bulls On Parade — Rage Against The Machine
+Killing In The Name — Rage Against The Machine"></textarea>
+      <div class="fx-micro-bts">
+        <button type="button" class="mini" id="btnMicroCriar">Criar cenas</button>
+        <button type="button" class="mini" id="btnMicroAgrupar">Agrupar por fundo</button>
+      </div>
+    </div>
+    <div id="fxAvisoMicro"></div>
+    <table class="fx"><thead><tr>
+      <!-- as larguras saem do modelo que a Bru usa hoje: a ref visual e a
+           coluna mais larga, depois a iluminacao -->
+      <th style="width:9%">Cena</th>
+      <th style="width:11%">Take(s)</th>
+      <th style="width:13%">Música</th>
+      <th style="width:23%">Ref visual</th>
+      <th style="width:19%">Iluminação</th>
+      <th style="width:14%">Guitarra / violão</th>
+      <th style="width:9%">Diagrama</th>
+    </tr></thead><tbody id="fxMicro"></tbody></table>
+    <div class="fx-nota">Diagrama — <b>RITMO</b> e <b>ACORDES</b> aparecem na parte
+      superior do vídeo; <b>TABLATURA</b> aparece na parte inferior.</div>
   </div>
 
   <div class="fx-bloco">
@@ -481,7 +633,7 @@
     <div class="fx-dias" id="fxDiasLista"></div>
   </div>
 
-  <div class="fx-dupla">
+  <div class="fx-dupla" id="fxInstrumentos">
     <div class="fx-bloco" style="margin-top:0">
       <h3>Violão</h3>
       <div class="fx-chips" id="fxViolaoAco"><span class="fx-grupo">Aço</span></div>
@@ -3742,7 +3894,7 @@ function baixarTpp(){
   flash('tppOk');
 }
 function flash(id){const el=document.getElementById(id);if(!el)return;el.style.display='inline';setTimeout(()=>el.style.display='none',1600);}
-function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 function limpar(){
   bpmDoPdf={ensina:'',toca:''};
@@ -4313,6 +4465,10 @@ function pontosDeCorte(el){
   const H=base.height||1;
   const p=[0];
   Array.prototype.forEach.call(partes,function(x){
+    /* a faixa do bloco de luz nao pode ficar sozinha no pe da folha:
+       sem a primeira cena dela, a folha seguinte comeca sem dizer de
+       que bloco e                                                     */
+    if(x.classList && x.classList.contains('fx-faixa'))return;
     const f=(x.getBoundingClientRect().bottom-base.top)/H;
     if(f>0.001 && f<0.999 && p[p.length-1]!==f)p.push(f);
   });
@@ -4432,6 +4588,9 @@ async function pintarAba(){
 
 async function montarPdfFluxo(diz){
   if(!blocosDoFluxo().length)throw new Error('n\u00e3o h\u00e1 nada no fluxo ainda');
+  /* a folha sai sempre nos blocos de luz, mesmo que o ultimo fundo tenha
+     acabado de ser escrito e o campo ainda esteja aberto */
+  if((FLUXO.modelo||'padrao')==='micro' && typeof agruparPorFundo==='function')agruparPorFundo();
   await carregarLibsPdf();
   diz('Montando o PDF\u2026');
   const desenho=await pintarAba();
@@ -4568,6 +4727,22 @@ function pacoteFluxo(){
   const cenas=STATE.flux||[];
   const resto=semVazios(Object.assign({},FLUXO,{cenas:undefined,dias:undefined}));
   delete resto.cenas; delete resto.dias;
+  /* microaula: so as linhas que tem alguma coisa escrita */
+  if(resto.micro){
+    const cheias={};
+    Object.keys(resto.micro).forEach(function(k){
+      const v=semVazios(resto.micro[k]||{});
+      if(Object.keys(v).length)cheias[k]=v;
+    });
+    if(Object.keys(cheias).length)resto.micro=cheias; else delete resto.micro;
+  }
+  /* a lista da microaula vai inteira (a ordem e o que importa), mas cada
+     linha so com o que foi escrito */
+  if(Array.isArray(resto.microLista)){
+    const linhas=resto.microLista.map(function(d){ return semVazios(d||{}); });
+    if(linhas.some(function(d){ return Object.keys(d).length; }))resto.microLista=linhas;
+    else delete resto.microLista;
+  }
   const dias=(FLUXO.dias||[]).map(function(d){
     const s=semVazios({data:d.data,obs:d.obs,produtora:d.produtora,arquivos:semVazios(d.arquivos||{})});
     return Object.keys(s).length?s:0;                 /* 0 = diaria em branco */
@@ -5128,7 +5303,7 @@ function fluxoVazio(modelo){
                    {data:'',obs:'',produtora:[],outra:''},
                    {data:'',obs:'',produtora:[],outra:''}],
           modelo:modelo||'padrao',qtdDiarias:10,dias:[],arqOrigens:{},
-          cenas:{},arquivos:{},bpmEnsina:'',bpmToca:'',
+          cenas:{},arquivos:{},micro:{},microLista:[],bpmEnsina:'',bpmToca:'',
           violao:[],violaoLivre:'',guitarra:[],guitarraLivre:'',obs:''};
 }
 let FLUXO=fluxoVazio('padrao');
@@ -5155,6 +5330,9 @@ function carregarFluxoLocal(){
 }
 /* versoes antigas guardavam a produtora como texto; agora e lista */
 function normalizarFluxo(){
+  if(!FLUXO.micro||typeof FLUXO.micro!=='object')FLUXO.micro={};
+  /* a microaula tem lista propria; o que vier de fora vira linha completa */
+  FLUXO.microLista=(Array.isArray(FLUXO.microLista)?FLUXO.microLista:[]).map(linhaMicro);
   if(!Array.isArray(FLUXO.diarias))FLUXO.diarias=[{},{},{}];
   for(let i=0;i<3;i++){
     const d=FLUXO.diarias[i]||(FLUXO.diarias[i]={});
@@ -5202,6 +5380,7 @@ function repintarFluxo(){
   document.querySelectorAll('#fxGuitarraPhx .fx-chip').forEach(function(c){
     c.classList.toggle('on',FLUXO.guitarra.indexOf(c.textContent)>=0); });
   renderDiarias(); renderFluxoCenas(); renderArquivos();
+  if(typeof renderMicro==='function')renderMicro();
   if(typeof aplicarModelo==='function')aplicarModelo();
 }
 function opcoes(sel,lista,valor){
@@ -5316,6 +5495,471 @@ function ajustarColunaData(){
     th.id='fxColData'; th.style.width='118px'; th.textContent='Data de grava\u00e7\u00e3o';
     cab.insertBefore(th,document.getElementById('fxColObs'));
   }else if(atual)atual.remove();
+}
+/* ===== Microaula =====
+   Uma linha por cena do roteiro, com as colunas que a Bru usa:
+   cena / take(s) / musica / ref visual / iluminacao / guitarra-violao /
+   diagrama. A iluminacao vai em duas partes: fundo + cor e recorte + Kelvin.
+   A ref visual entra colando (Ctrl+V) ou arrastando a imagem pra cima do
+   quadrinho; Delete em cima dele tira a imagem.                            */
+const MICRO_CAMPOS=['takes','musica','fundo','recorte','inst','diagrama'];
+const DIAGRAMAS=['RITMO','TAB'];
+const REF_LARGURA=360;          /* a imagem e reduzida: o PDF carrega ela dentro */
+/* ---- microaula: lista propria, sem roteiro ----
+   A cena nao tem nome fixo: TOCA 01 e sempre a primeira da lista, entao
+   reordenar por fundo ja renumera tudo sozinho.                          */
+function linhaMicro(d){
+  d=d||{};
+  return {musica:d.musica||'',takes:d.takes||'',fundo:d.fundo||'',recorte:d.recorte||'',
+          inst:d.inst||'',diagrama:d.diagrama||'',img:d.img||''};
+}
+function rotuloMicro(i){ return 'TOCA '+(i+1<10?'0':'')+(i+1); }
+function listaMicro(){
+  if(!Array.isArray(FLUXO.microLista))FLUXO.microLista=[];
+  return FLUXO.microLista;
+}
+/* Fluxo antigo (e roteiro, quando existir): as cenas TOCA viram a lista */
+function semearMicroDoRoteiro(){
+  const lista=listaMicro();
+  if(lista.length)return;
+  (STATE.flux||[]).forEach(function(sc,i){
+    if(!/^TOCA/.test(sc.type))return;
+    lista.push(linhaMicro((FLUXO.micro||{})[chaveCena(sc,i)]));
+  });
+  if(lista.length)FLUXO.micro={};      /* ja passou para a lista: nao guarda duas vezes */
+}
+/* O fundo e escrito a mao e muda de forma: "Vermelho", "Degradê laranja",
+   "Detalhe Fresnel 2800K", "desligado", ou o HSI em tres linhas. Para juntar
+   os iguais, o que conta e o texto sem acento, sem maiuscula e com os
+   espacos e quebras de linha reduzidos a um so.                          */
+function normalizarFundo(v){
+  return String(v==null?'':v).normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .toLowerCase().replace(/\s+/g,' ').trim();
+}
+/* uma linha so, para a faixa do bloco nao esticar a tabela */
+function resumoFundo(v){
+  return String(v==null?'':v).split(/\r?\n/).map(function(s){ return s.trim(); })
+    .filter(function(s){ return s; }).join(' · ');
+}
+/* o que ja foi escrito nesta aula, para repetir sem redigitar */
+function valoresUsados(qual){
+  const vistos={}, r=[];
+  listaMicro().forEach(function(d){
+    const v=(d[qual]||'').trim();
+    const k=normalizarFundo(v);
+    if(!v||vistos[k])return;
+    vistos[k]=1; r.push(v);
+  });
+  return r;
+}
+/* Os mais usados nos fluxos de 2026, em ordem de quantas vezes apareceram:
+   fundo  — azul 16, preto 14, vermelho 13, alaranjado 7, 3000K 5, verde 4,
+            4000K 4, desligado 4;
+   recorte— 3000K 47, 4000K 24, vermelho 15, azul 12, 5000K 10, 2800K 6,
+            verde 4, 6000K 2.
+   O alaranjado guarda o HSI que aparece escrito nos fluxos, sempre o mesmo. */
+const LARANJA_HSI='Laranja\nH: 53\nS: 90\nI: 70';
+/* Os Kelvin ficam em ordem crescente, do mais quente para o mais frio */
+const KELVINS=['2800K','3000K','3500K','4000K','6000K'];
+/* Sem luz nenhuma no fundo: nao tem cor, entao vai no fim */
+const SEM_COR=['Preto'];
+/* O circulo de cor da luz: as primarias somam para as secundarias, e as
+   terciarias ficam entre elas. So as primarias e as secundarias tem nome
+   proprio no refletor; as terciarias e que precisam do HSI para sair
+   iguais duas vezes — menos o rosa, que vai so pelo nome.
+   Dos fluxos de 2026 so saiu o HSI do laranja; os outros dois esperam o
+   numero para entrar aqui do mesmo jeito.                              */
+/* Os grids com numero escrito nos fluxos de 2026. So entram os dois que
+   aparecem de verdade: o C007 vem escrito "(azul claro)" ao lado, e o
+   C009 esta na cena de fundo "roxo/preto". Grid vermelho e grid verde
+   tambem foram usados, mas sem numero anotado — por isso nao estao aqui. */
+const GRIDS=['Grid: C007 - azul claro','Grid: C009 - roxo'];
+const CORES_PRIMARIAS=['Vermelho','Verde','Azul'];
+const CORES_SECUNDARIAS=['Amarelo','Ciano','Roxo'];
+const CORES_TERCIARIAS=[LARANJA_HSI,"Verde d'água",'Azul ciano','Rosa'];
+/* A aba "padrão" inteira, na ordem em que ela aparece: Kelvin crescente,
+   depois as luzes primarias, as secundarias e as terciarias, e por fim o
+   que nao tem cor. O grid so entra no fundo.                            */
+function listaPadrao(qual){
+  const r=KELVINS.concat(CORES_PRIMARIAS,CORES_SECUNDARIAS,CORES_TERCIARIAS,SEM_COR);
+  return qual==='fundo'?r.concat(GRIDS):r;
+}
+/* sem Kelvin escrito, a aula fica no fim do bloco */
+function valorRecorte(v){
+  const m=String(v==null?'':v).match(/\d+/);
+  return m?parseInt(m[0],10):Infinity;
+}
+/* ---- temperatura de cor: os blocos vizinhos tem que ser parecidos ----
+   Os blocos sao postos em fila do mais quente para o mais frio, para o
+   estudio passar do laranja para o vermelho, e so depois para o azul,
+   em vez de pular de um lado para o outro. O numero e um Kelvin de
+   mentira: so serve para por em ordem.                                 */
+const CORES_FUNDO=[
+  /* as compostas vem antes: "verde d'água" nao pode cair no bloco do verde */
+  [/verde[ -]?lim|chartreuse/,3900],
+  [/verde\s*(?:d['’ ]?\s*)?agua|turques/,6100],
+  [/azul[ -]?ciano|ciano[ -]?azul|azul[ -]?celeste|\bceleste\b|\bazure\b/,7250],
+  [/vermelh|\bred\b/,1700],[/\bambar\b|\bamber\b/,2000],[/laranj|\borange\b/,2200],
+  [/amarel|dourad|\byellow\b/,2700],[/quent|\bwarm\b/,3000],[/\bbranc|neutr|\bwhite\b/,4500],
+  [/verde|\bgreen\b/,5200],[/\bfri[ao]|\bcool\b|\bcold\b/,6500],[/ciano|\bcyan\b/,7000],
+  [/azul|azui|\bblue\b/,7500],[/roxo|violet|lilas|\bpurple\b/,8200],
+  [/magenta/,8600],[/rosa|\bpink\b/,8900]
+];
+/* Fundo escrito em canais: "Blue: 40% Green 55%", "R: 18% e B: 10%".
+   Dois canais ou mais viram uma media: azul com verde cai perto do ciano,
+   em vez de ir para o azul puro.                                        */
+const CANAIS=[
+  [/(?:vermelh\w*|\bred\b|\br\b)\s*(?:[:=]\s*(\d{1,3})\s*%?|(\d{1,3})\s*%)/,1700],
+  [/(?:verde\w*|\bgreen\b|\bg\b)\s*(?:[:=]\s*(\d{1,3})\s*%?|(\d{1,3})\s*%)/,5200],
+  [/(?:azu\w*|\bblue\b|\bb\b)\s*(?:[:=]\s*(\d{1,3})\s*%?|(\d{1,3})\s*%)/,7500]
+];
+/* A cor única do fundo fica sempre em português, para "Blue" e "Azul" não
+   virarem dois blocos. A mistura, não: ela vem das siglas do RGB, com uma
+   porcentagem em cada, e continua como está escrita.                     */
+const TRADUZ_COR=[[/\bblue\b/gi,'Azul'],[/\bgreen\b/gi,'Verde'],[/\bred\b/gi,'Vermelho'],
+  [/\borange\b/gi,'Laranja'],[/\byellow\b/gi,'Amarelo'],[/\bpurple\b/gi,'Roxo'],
+  [/\bpink\b/gi,'Rosa'],[/\bwhite\b/gi,'Branco'],[/\bblack\b/gi,'Preto'],
+  [/\bcyan\b/gi,'Ciano'],[/\bamber\b/gi,'Âmbar'],[/\bwarm\b/gi,'Quente'],
+  [/\bcool\b/gi,'Frio'],[/\bcold\b/gi,'Frio'],[/\boff\b/gi,'Desligado']];
+function padronizarCor(v){
+  const t=String(v==null?'':v);
+  if(misturaDeCores(normalizarFundo(t))!==null)return t;   /* mistura RGB: não mexe */
+  let r=t;
+  TRADUZ_COR.forEach(function(p){ r=r.replace(p[0],p[1]); });
+  return r;
+}
+function misturaDeCores(t){
+  let soma=0, peso=0, quantos=0;
+  CANAIS.forEach(function(c){
+    const m=t.match(c[0]);
+    if(!m)return;
+    const p=parseInt(m[1]!==undefined?m[1]:m[2],10);
+    if(!(p>=0 && p<=100))return;
+    soma+=c[1]*p; peso+=p; quantos++;
+  });
+  return (quantos>=2 && peso>0) ? soma/peso : null;
+}
+/* o matiz do HSI, quando e so isso que esta escrito */
+const MATIZES=[[0,1700],[30,2200],[60,2700],[120,5200],[180,7000],
+               [240,7500],[300,8600],[360,1700]];
+function temperaturaFundo(v){
+  const texto=String(v==null?'':v);
+  /* os canais sao uma receita so, mesmo escritos em linhas separadas:
+     "Blue: 40%" numa linha e "Green 55%" na outra e um fundo ciano    */
+  const mistura=misturaDeCores(normalizarFundo(texto));
+  if(mistura!==null)return mistura;
+  /* fora isso, a primeira linha e o fundo em si; o que vem embaixo
+     (grid, bastao, detalhe) e acessorio e nao decide o bloco          */
+  const linhas=texto.split(/\r?\n/);
+  if(linhas.length>1){
+    const so=temperaturaDoTexto(linhas[0]);
+    if(so!==Infinity)return so;
+  }
+  return temperaturaDoTexto(texto);
+}
+function temperaturaDoTexto(v){
+  const t=normalizarFundo(v);
+  if(!t)return Infinity;
+  /* fundo escrito em canais com porcentagem: a media dos dois */
+  const mistura=misturaDeCores(t);
+  if(mistura!==null)return mistura;
+  /* a cor escrita manda, e vale a primeira que aparece: em "Degradê azul"
+     ou "Grid vermelho" e ela que diz como o fundo se ve */
+  let achada=null;
+  CORES_FUNDO.forEach(function(c){
+    const m=t.match(c[0]);
+    if(!m)return;
+    if(achada===null || m.index<achada.onde)achada={onde:m.index,qual:c[1]};
+  });
+  if(achada)return achada.qual;
+  /* depois o Kelvin da lampada: "Detalhe Fresnel 2800K" */
+  const k=t.match(/(\d{3,5})\s*k\b/);
+  if(k)return parseInt(k[1],10);
+  /* por ultimo o matiz do HSI: "H:138 S:93 I:10" */
+  const h=t.match(/h\s*[:=]\s*(\d{1,3})/);
+  if(h){
+    const g=Math.max(0,Math.min(360,parseInt(h[1],10)));
+    for(let i=1;i<MATIZES.length;i++){
+      if(g>MATIZES[i][0])continue;
+      const a=MATIZES[i-1], b=MATIZES[i];
+      const passo=(g-a[0])/((b[0]-a[0])||1);
+      return a[1]+(b[1]-a[1])*passo;
+    }
+  }
+  return Infinity;      /* preto, desligado, nome que eu nao conheco */
+}
+/* Junta as aulas de mesmo fundo: um bloco de luz de cada vez. Os blocos
+   entram em fila do mais quente para o mais frio, para um bloco so mudar
+   um pouco para o seguinte. Dentro do bloco, ordena pelo Kelvin do
+   recorte. As que ainda nao tem fundo escolhido ficam no fim.           */
+function agruparPorFundo(){
+  const lista=listaMicro();
+  const ordem=[], grupos={};
+  lista.forEach(function(d,i){
+    const k=normalizarFundo(d.fundo);
+    if(!grupos[k]){
+      grupos[k]=[];
+      ordem.push({k:k, temp:temperaturaFundo(d.fundo), primeiro:i});
+    }
+    grupos[k].push(d);
+  });
+  ordem.sort(function(a,b){
+    if(a.k==='' || b.k==='')return a.k===''?1:-1;    /* sem fundo: sempre no fim */
+    if(a.temp!==b.temp)return a.temp-b.temp;          /* quente antes de frio */
+    return a.primeiro-b.primeiro;                     /* empate: quem veio antes */
+  });
+  const nova=[];
+  ordem.forEach(function(g){
+    grupos[g.k].sort(function(a,b){ return valorRecorte(a.recorte)-valorRecorte(b.recorte); });
+    grupos[g.k].forEach(function(d){ nova.push(d); });
+  });
+  FLUXO.microLista=nova;
+  salvarFluxoLocal();
+  renderMicro();
+}
+function desarmarXis(){
+  document.querySelectorAll('#fxMicro .fx-x.pronto').forEach(function(b){
+    clearTimeout(b.__relogio);
+    b.classList.remove('pronto'); b.textContent='×';
+    const cel=b.closest('td'); if(cel)cel.classList.remove('armado');
+  });
+}
+function faixaFundo(nome,qtd){
+  const tr=document.createElement('tr');
+  tr.className='fx-faixa';
+  const td=document.createElement('td');
+  td.colSpan=7;
+  td.innerHTML=escapeHtml(resumoFundo(nome))+' <span class="q">'+qtd+(qtd===1?' música':' músicas')+'</span>';
+  tr.appendChild(td);
+  return tr;
+}
+/* A listinha ao lado de Fundo e de Recorte tem duas abas so: o que ja foi
+   escrito nesta aula, que se enche sozinho conforme ela preenche, e o
+   padrao, sempre na mesma ordem. E um select de verdade porque no iPhone
+   ele abre o seletor do sistema, que da para usar com o dedo.            */
+function montarEscolhas(cel,d,qual,campo,aoMudar){
+  if(!cel)return;
+  cel.innerHTML='';
+  const meu=normalizarFundo(d[qual]);
+  const usados=valoresUsados(qual).filter(function(v){
+    return normalizarFundo(v)!==meu; });
+  /* o que ja esta na aula nao se repete no padrao */
+  const padrao=listaPadrao(qual).filter(function(v){
+    const k=normalizarFundo(v);
+    if(k===meu)return false;
+    return !usados.some(function(u){ return normalizarFundo(u)===k; });
+  });
+  if(!usados.length && !padrao.length)return;
+  const grupo=function(rotulo,vals){
+    if(!vals.length)return '';
+    return '<optgroup label="'+rotulo+'">'+vals.map(function(v){
+      return '<option value="'+escapeHtml(v)+'">'+escapeHtml(resumoFundo(v))+'</option>';
+    }).join('')+'</optgroup>';
+  };
+  const sel=document.createElement('select');
+  sel.className='fx-repetir nao-no-pdf';
+  sel.title='escolher um '+qual+' já usado';
+  sel.innerHTML='<option value="">▾</option>'
+    +grupo('usados nesta aula',usados)+grupo('padrão',padrao);
+  sel.addEventListener('change',function(){
+    if(!sel.value)return;
+    d[qual]=sel.value;
+    campo.value=sel.value; crescerCampo(campo);
+    salvarFluxoLocal(); aoMudar();
+  });
+  cel.appendChild(sel);
+}
+/* A caixa dos nomes vira cena sozinha, como o roteiro na aba TP: cada
+   linha terminada vira uma aula no fim da lista. A ultima linha, que
+   ainda pode estar sendo escrita, so entra quando ela aperta Enter, sai
+   do campo ou usa o botao — assim um nome pela metade nao vira cena.   */
+function criarCenasMicro(tudo){
+  const caixa=document.getElementById('fxMicroNomes');
+  if(!caixa)return 0;
+  let linhas=caixa.value.split(/\r?\n/);
+  let sobra='';
+  if(!tudo){ sobra=linhas.pop(); }          /* a linha sem Enter fica para depois */
+  const nomes=linhas.map(function(s){ return s.trim(); })
+    .filter(function(s){ return s; });
+  if(!nomes.length){ return 0; }
+  const lista=listaMicro();
+  nomes.forEach(function(n){ lista.push(linhaMicro({musica:n})); });
+  caixa.value=tudo?'':sobra;
+  salvarFluxoLocal(); renderMicro();
+  return nomes.length;
+}
+let relogioMicro=null;
+function agendarCenasMicro(){
+  clearTimeout(relogioMicro);
+  relogioMicro=setTimeout(function(){ criarCenasMicro(false); },700);
+}
+function ligarBotoesMicro(){
+  const criar=document.getElementById('btnMicroCriar');
+  if(criar)criar.onclick=function(){ criarCenasMicro(true); };
+  const juntar=document.getElementById('btnMicroAgrupar');
+  if(juntar)juntar.onclick=agruparPorFundo;
+  const caixa=document.getElementById('fxMicroNomes');
+  if(caixa){
+    caixa.addEventListener('input',agendarCenasMicro);
+    caixa.addEventListener('blur',function(){
+      clearTimeout(relogioMicro); criarCenasMicro(true); });
+    /* colar e um bloco pronto: entra inteiro, sem esperar o Enter da ultima */
+    caixa.addEventListener('paste',function(){
+      clearTimeout(relogioMicro);
+      setTimeout(function(){ criarCenasMicro(true); },0);
+    });
+  }
+}
+function reduzirImagem(arquivo){
+  return new Promise(function(ok,erro){
+    const leitor=new FileReader();
+    leitor.onerror=function(){ erro(new Error('não consegui ler a imagem')); };
+    leitor.onload=function(){
+      const im=new Image();
+      im.onerror=function(){ erro(new Error('arquivo não é uma imagem')); };
+      im.onload=function(){
+        const escala=Math.min(1,REF_LARGURA/im.width);
+        const c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(im.width*escala));
+        c.height=Math.max(1,Math.round(im.height*escala));
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+        ok(c.toDataURL('image/jpeg',0.72));
+      };
+      im.src=leitor.result;
+    };
+    leitor.readAsDataURL(arquivo);
+  });
+}
+/* o nome da musica e longo ("Bulls On Parade - Rage Against The Machine"):
+   o campo cresce em altura em vez de cortar */
+function crescerCampo(el){
+  el.style.height='auto';
+  el.style.height=(el.scrollHeight)+'px';
+}
+function pintarRef(caixa,dados){
+  if(dados){ caixa.innerHTML='<img alt="">'; caixa.querySelector('img').src=dados; }
+  else caixa.innerHTML='<span class="dica">colar ou arrastar</span>';
+}
+function renderMicro(){
+  const tb=document.getElementById('fxMicro');
+  if(!tb)return;
+  /* fora do modelo microaula nao monta nada: senao criaria linhas vazias no
+     fluxo e elas entrariam no arquivo salvo e no link                     */
+  if((FLUXO.modelo||'padrao')!=='micro'){ tb.innerHTML=''; return; }
+  /* na microaula so existe TOCA: uma linha por musica. A lista e propria —
+     os nomes vem dos cards, nao de roteiro.                              */
+  semearMicroDoRoteiro();
+  const lista=listaMicro();
+  const av=document.getElementById('fxAvisoMicro');
+  tb.innerHTML='';
+  if(!lista.length){
+    if(av)av.innerHTML='<div class="status warn">Nenhuma aula ainda. '
+      +'Cole a lista de nomes na caixa aí em cima, uma por linha, e aperte '
+      +'"Criar cenas". O nome de cada uma vai para a coluna Música.</div>';
+    return;
+  }
+  if(av)av.innerHTML='';
+  let fundoAnterior=null;
+  lista.forEach(function(d,i){
+    /* faixa do bloco de luz: aparece quando o fundo muda da linha de cima */
+    const atual=normalizarFundo(d.fundo);
+    if(atual && atual!==fundoAnterior){
+      let n=0;
+      for(let j=i;j<lista.length && normalizarFundo(lista[j].fundo)===atual;j++)n++;
+      tb.appendChild(faixaFundo(d.fundo,n));
+    }
+    fundoAnterior=atual;
+    const tr=document.createElement('tr');
+    tr.dataset.linha=String(i);
+    tr.innerHTML='<td class="cena"><span class="fx-cena-nome">'+escapeHtml(rotuloMicro(i))+'</span>'
+      +'<button type="button" class="fx-x nao-no-pdf" title="tirar esta aula">×</button></td>'
+      +'<td><input type="text" class="fx-take" data-campo="takes" value="'+escapeHtml(d.takes)+'"></td>'
+      +'<td><textarea class="fx-musica" rows="1" data-campo="musica">'+escapeHtml(d.musica)+'</textarea></td>'
+      +'<td><div class="fx-ref" tabindex="0" title="Cole com Ctrl+V ou arraste a imagem"></div></td>'
+      /* fundo e recorte sao escritos a mao e podem ter varias linhas:
+         "Degradê laranja", "Detalhe Fresnel 2800K", ou o HSI em tres linhas */
+      +'<td><div class="fx-luz">'
+        +'<div><div class="fx-luzrot"><label>Fundo</label><span class="fx-celfundo"></span></div>'
+          +'<textarea class="fx-luzcampo" rows="1" data-campo="fundo">'+escapeHtml(d.fundo)+'</textarea></div>'
+        +'<div><div class="fx-luzrot"><label>Recorte</label><span class="fx-celrecorte"></span></div>'
+          +'<textarea class="fx-luzcampo" rows="1" data-campo="recorte">'+escapeHtml(d.recorte)+'</textarea></div>'
+      +'</div></td>'
+      +'<td><input type="text" class="fx-inst" data-campo="inst" value="'+escapeHtml(d.inst)+'"></td>'
+      +'<td><div class="fx-chips fx-diag">'
+        +DIAGRAMAS.map(function(t){
+            return '<button type="button" class="fx-chip'+(d.diagrama===t?' on':'')
+                  +'" data-diag="'+t+'">'+t+'</button>'; }).join('')
+      +'</div></td>';
+    tr.querySelectorAll('input[data-campo],textarea[data-campo]').forEach(function(inp){
+      inp.addEventListener('input',function(){
+        d[inp.dataset.campo]=inp.value;
+        if(inp.tagName==='TEXTAREA')crescerCampo(inp);
+        salvarFluxoLocal();
+      });
+      if(inp.tagName==='TEXTAREA')setTimeout(function(){ crescerCampo(inp); },0);
+      /* mudou a luz -> a cor única vira português e o fluxo se reorganiza
+         sozinho, sem apertar botao                                      */
+      if(inp.dataset.campo==='fundo' || inp.dataset.campo==='recorte')
+        inp.addEventListener('change',function(){
+          const certo=padronizarCor(inp.value);
+          if(certo!==inp.value){ inp.value=certo; crescerCampo(inp); }
+          d[inp.dataset.campo]=certo;
+          agruparPorFundo();
+        });
+    });
+    montarEscolhas(tr.querySelector('.fx-celfundo'),d,'fundo',
+                   tr.querySelector('textarea[data-campo="fundo"]'),agruparPorFundo);
+    montarEscolhas(tr.querySelector('.fx-celrecorte'),d,'recorte',
+                   tr.querySelector('textarea[data-campo="recorte"]'),agruparPorFundo);
+    /* Dois toques em vez de caixa de dialogo: o navegador deixa de mostrar
+       o confirm depois que a pessoa marca "nao mostrar mais", e aí o botao
+       parava de funcionar calado. O primeiro toque pergunta no proprio
+       botao, o segundo tira.                                             */
+    const bx=tr.querySelector('.fx-x');
+    bx.onclick=function(){
+      if(bx.classList.contains('pronto')){
+        lista.splice(i,1); salvarFluxoLocal(); renderMicro(); return;
+      }
+      desarmarXis();
+      /* o nome da cena sai de cena enquanto pergunta: se o botao so
+         crescesse, ele passaria por cima da coluna do take e era o take
+         que recebia o segundo toque                                     */
+      bx.classList.add('pronto'); bx.textContent='tirar?';
+      bx.closest('td').classList.add('armado');
+      bx.__relogio=setTimeout(desarmarXis,5000);
+    };
+    tr.querySelectorAll('.fx-diag .fx-chip').forEach(function(b){
+      b.onclick=function(){
+        d.diagrama = (d.diagrama===b.dataset.diag) ? '' : b.dataset.diag;   /* so um por vez */
+        tr.querySelectorAll('.fx-diag .fx-chip').forEach(function(o){
+          o.classList.toggle('on',o.dataset.diag===d.diagrama); });
+        salvarFluxoLocal();
+      };
+    });
+    const ref=tr.querySelector('.fx-ref');
+    pintarRef(ref,d.img);
+    const receber=async function(arqs){
+      const arq=Array.from(arqs||[]).filter(function(a){ return /^image\//.test(a.type); })[0];
+      if(!arq)return;
+      try{ d.img=await reduzirImagem(arq); pintarRef(ref,d.img); salvarFluxoLocal(); }
+      catch(e){ alert('Não consegui usar essa imagem: '+(e&&e.message?e.message:e)); }
+    };
+    ref.addEventListener('paste',function(e){
+      const dt=e.clipboardData; if(!dt)return;
+      if(dt.files&&dt.files.length){ e.preventDefault(); receber(dt.files); }
+    });
+    ref.addEventListener('dragover',function(e){ e.preventDefault(); ref.classList.add('hover'); });
+    ref.addEventListener('dragleave',function(){ ref.classList.remove('hover'); });
+    ref.addEventListener('drop',function(e){
+      e.preventDefault(); ref.classList.remove('hover');
+      receber(e.dataTransfer&&e.dataTransfer.files);
+    });
+    ref.addEventListener('keydown',function(e){
+      if(e.key!=='Delete' && e.key!=='Backspace')return;
+      e.preventDefault(); d.img=''; pintarRef(ref,''); salvarFluxoLocal();
+    });
+    tb.appendChild(tr);
+  });
 }
 function renderFluxoCenas(){
   ajustarColunaData();
@@ -5511,10 +6155,37 @@ function lerBpm(txt){
   const mEns=txt.match(/\bBPM\s*:\s*(\d+)/i);
   return {ensina:mEns?mEns[1]:'', toca:mToca?mToca[1]:''};
 }
+/* Repintar o fluxo troca os campos por campos novos. Se isso acontecer
+   enquanto alguem digita (o roteiro se reprocessa sozinho um instante
+   depois de ser editado), as letras seguintes caem no vazio. Guardamos
+   onde o cursor estava e o devolvemos assim que a tabela e refeita.    */
+function comFocoPreservado(repintar){
+  const antes=document.activeElement;
+  let m=null;
+  if(antes && antes.tagName==='INPUT' && antes.closest){
+    const tr=antes.closest('tr'), tb=antes.closest('tbody');
+    if(tr && tb && tb.id){
+      const linhas=Array.prototype.slice.call(tb.children);
+      const campos=Array.prototype.slice.call(tr.querySelectorAll('input'));
+      m={tb:tb.id, li:linhas.indexOf(tr), col:campos.indexOf(antes),
+         ini:antes.selectionStart, fim:antes.selectionEnd};
+    }
+  }
+  repintar();
+  if(!m || m.li<0 || m.col<0)return;
+  const tb=document.getElementById(m.tb);
+  const tr=tb && tb.children[m.li];
+  const campo=tr && tr.querySelectorAll('input')[m.col];
+  if(!campo)return;
+  campo.focus();
+  try{ campo.setSelectionRange(m.ini,m.fim); }catch(e){}
+}
 function atualizarFluxo(){
-  renderFluxoCenas();
-  renderArquivos();
-  if(FLUXO.modelo==='diarias')renderDias();
+  comFocoPreservado(function(){
+    renderFluxoCenas();
+    renderArquivos();
+    if(FLUXO.modelo==='diarias')renderDias();
+  });
   preencherFluxoDoRoteiro();
 }
 function montarAbaFluxo(){
@@ -5556,6 +6227,7 @@ function montarAbaFluxo(){
     });
     qtd.addEventListener('keydown',function(e){ if(e.key==='Enter')qtd.blur(); });
   }
+  ligarBotoesMicro();
   aplicarModelo();
   atualizarFluxo();
 }
@@ -5586,6 +6258,9 @@ function aplicarModelo(){
     b.classList.toggle('on',b.dataset.modelo===m);
   });
   if(m==='diarias')renderDias();
+  /* sempre: fora do modelo ela se limpa sozinha, para nao deixar linhas
+     velhas escondidas na tabela da microaula                           */
+  renderMicro();
   renderFluxoCenas();
 }
 /* ---- varias diarias: ate 30 dias, cada um com data, produtora e arquivos ---- */
