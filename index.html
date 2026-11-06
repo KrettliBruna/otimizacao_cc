@@ -231,8 +231,8 @@
   /* FUNDO e RECORTE sao lidos no estudio, de longe: letra maior, com um
      desenho que separa bem as maiusculas em vez de apertar tudo */
   .fx-luz label{font-size:0.78rem;text-transform:uppercase;letter-spacing:0.12em;
-    font-family:"Avenir Next","Segoe UI",Inter,system-ui,sans-serif;
-    color:var(--amber);font-weight:600;display:block;opacity:0.9;}
+    font-family:'Courier New',Courier,monospace;
+    color:var(--amber);font-weight:700;display:block;opacity:0.9;}
   .fx-luz input{width:100%;}
   textarea.fx-musica{width:100%;border:none;background:transparent;color:var(--ink);
     padding:16px 8px;font-size:0.86rem;font-family:inherit;resize:none;overflow:hidden;
@@ -253,6 +253,14 @@
   select.fx-repetir{appearance:none;-webkit-appearance:none;border:none;background:transparent;
     color:var(--muted);font-size:0.7rem;cursor:pointer;padding:0 2px;width:16px;text-align:center;}
   select.fx-repetir:hover{color:var(--amber);}
+  /* os nomes das abas e o que nao e cor saem na cor normal do texto, para
+     nao se confundirem com as cores que ela escolhe */
+  /* O fundo da caixa aberta vem do proprio select. Como ele e transparente
+     para somar com a celula, o navegador cairia no branco mesmo no tema
+     escuro: por isso cada linha ganha o fundo do tema.                  */
+  select.fx-repetir optgroup{background:var(--panel);color:var(--ink);
+    font-weight:700;font-style:normal;}
+  select.fx-repetir option{background:var(--panel);color:var(--ink);font-weight:400;}
   /* faixa que separa um bloco de luz do outro */
   table.fx tr.fx-faixa td{background:var(--amber-soft);border:none;padding:8px 10px;
     font-size:0.72rem;letter-spacing:0.14em;color:var(--amber);font-weight:700;text-transform:uppercase;}
@@ -5577,12 +5585,31 @@ const GRIDS=['Grid: C007 - azul claro','Grid: C009 - roxo'];
 const CORES_PRIMARIAS=['Vermelho','Verde','Azul'];
 const CORES_SECUNDARIAS=['Amarelo','Ciano','Roxo'];
 const CORES_TERCIARIAS=[LARANJA_HSI,"Verde d'água",'Azul ciano','Rosa'];
-/* A aba "padrão" inteira, na ordem em que ela aparece: Kelvin crescente,
-   depois as luzes primarias, as secundarias e as terciarias, e por fim o
-   que nao tem cor. O grid so entra no fundo.                            */
+/* A aba "padrão" vem em blocos, com uma linha em branco entre eles: Kelvin
+   crescente, luzes primarias, secundarias, terciarias, o que nao tem cor e,
+   so no fundo, o grid. Sem rotulo nenhum — a separacao e o espaco.       */
+function blocosPadrao(qual){
+  const b=[KELVINS,CORES_PRIMARIAS,CORES_SECUNDARIAS,CORES_TERCIARIAS,SEM_COR];
+  return qual==='fundo'?b.concat([GRIDS]):b;
+}
 function listaPadrao(qual){
-  const r=KELVINS.concat(CORES_PRIMARIAS,CORES_SECUNDARIAS,CORES_TERCIARIAS,SEM_COR);
-  return qual==='fundo'?r.concat(GRIDS):r;
+  return blocosPadrao(qual).reduce(function(r,b){ return r.concat(b); },[]);
+}
+/* Cada cor aparece escrita na propria cor. Os tons sao medios de proposito:
+   precisam ser legiveis tanto no menu claro quanto no escuro. As compostas
+   vem antes para "verde d'água" nao sair com a cor do verde.             */
+const COR_DA_LETRA=[
+  [/verde\s*(?:d['’ ]?\s*)?agua/,'#0ca678'],
+  [/azul[ -]?ciano/,'#1098ad'],
+  [/vermelh/,'#e03131'],[/laranj/,'#e8590c'],[/amarel|dourad/,'#c79400'],
+  [/verde/,'#2f9e44'],[/ciano/,'#0c8599'],[/azul/,'#1c7ed6'],
+  [/roxo|violet|lilas/,'#9333ea'],[/magenta|rosa/,'#e64980']
+];
+function corDaLetra(v){
+  const t=normalizarFundo(v);
+  for(let i=0;i<COR_DA_LETRA.length;i++)
+    if(COR_DA_LETRA[i][0].test(t))return COR_DA_LETRA[i][1];
+  return '';
 }
 /* sem Kelvin escrito, a aula fica no fim do bloco */
 function valorRecorte(v){
@@ -5744,23 +5771,33 @@ function montarEscolhas(cel,d,qual,campo,aoMudar){
   const usados=valoresUsados(qual).filter(function(v){
     return normalizarFundo(v)!==meu; });
   /* o que ja esta na aula nao se repete no padrao */
-  const padrao=listaPadrao(qual).filter(function(v){
+  const livre=function(v){
     const k=normalizarFundo(v);
     if(k===meu)return false;
     return !usados.some(function(u){ return normalizarFundo(u)===k; });
-  });
-  if(!usados.length && !padrao.length)return;
-  const grupo=function(rotulo,vals){
-    if(!vals.length)return '';
-    return '<optgroup label="'+rotulo+'">'+vals.map(function(v){
-      return '<option value="'+escapeHtml(v)+'">'+escapeHtml(resumoFundo(v))+'</option>';
-    }).join('')+'</optgroup>';
+  };
+  const blocos=blocosPadrao(qual).map(function(b){ return b.filter(livre); })
+    .filter(function(b){ return b.length; });
+  if(!usados.length && !blocos.length)return;
+  const opcao=function(v){
+    const cor=corDaLetra(v);
+    return '<option value="'+escapeHtml(v)+'"'+(cor?' style="color:'+cor+'"':'')+'>'
+      +escapeHtml(resumoFundo(v))+'</option>';
+  };
+  /* uma linha vazia, que nao da para escolher, separa um bloco do outro */
+  const vazia='<option value="" disabled>&nbsp;</option>';
+  const grupo=function(rotulo,partes){
+    if(!partes.length)return '';
+    return '<optgroup label="'+rotulo+'">'
+      +partes.map(function(b){ return b.map(opcao).join(''); }).join(vazia)
+      +'</optgroup>';
   };
   const sel=document.createElement('select');
   sel.className='fx-repetir nao-no-pdf';
   sel.title='escolher um '+qual+' já usado';
   sel.innerHTML='<option value="">▾</option>'
-    +grupo('usados nesta aula',usados)+grupo('padrão',padrao);
+    +grupo('usados nesta aula',usados.length?[usados]:[])
+    +grupo('padrão',blocos);
   sel.addEventListener('change',function(){
     if(!sel.value)return;
     d[qual]=sel.value;
