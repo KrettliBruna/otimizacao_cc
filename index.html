@@ -5478,6 +5478,19 @@ function normalizarFluxo(){
       if(a && typeof a==='object')return {id:a.id||novaAvulsa('').id,rotulo:a.rotulo||''};
       return null;
     }).filter(Boolean);
+  /* As versoes anteriores batizavam a cena criada a mao de "CENA 01". Hoje
+     o nome e dela, e essas voltavam do nada num fluxo guardado. Limpa uma
+     vez so as que ficaram em branco; se tiver cam, take ou observacao
+     escrita, fica, porque ai e trabalho dela.                            */
+  if(!FLUXO.semCenaVelha){
+    FLUXO.avulsas=FLUXO.avulsas.filter(function(a){
+      if(!/^CENA\s*\d+$/i.test(a.rotulo||''))return true;
+      const d=(FLUXO.cenas||{})['avulsa|'+a.id];
+      if(!d)return false;
+      return !!((d.cam||'').trim()||(d.takes||'').trim()||(d.obs||'').trim());
+    });
+    FLUXO.semCenaVelha=1;
+  }
   if(!Array.isArray(FLUXO.diarias))FLUXO.diarias=[{},{},{}];
   for(let i=0;i<3;i++){
     const d=FLUXO.diarias[i]||(FLUXO.diarias[i]={});
