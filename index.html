@@ -3816,16 +3816,18 @@ function juntarAvulsas(){
             grupo:grupoDaCena(a.rotulo),secao:'',text:[]};
   }));
 }
+/* as cenas a mao tambem alimentam a tabela de arquivos por diaria */
+function repintarCenas(){ renderFluxoCenas(); renderArquivos(); }
 function criarCenaAvulsa(){
   listaAvulsas().push(novaAvulsa(''));     /* sem nome: ela escreve */
-  juntarAvulsas(); salvarFluxoLocal(); renderFluxoCenas();
+  juntarAvulsas(); salvarFluxoLocal(); repintarCenas();
 }
 function tirarCenaAvulsa(id){
   const l=listaAvulsas();
   for(let i=0;i<l.length;i++){
     if(l[i].id===id){ l.splice(i,1); break; }
   }
-  juntarAvulsas(); salvarFluxoLocal(); renderFluxoCenas();
+  juntarAvulsas(); salvarFluxoLocal(); repintarCenas();
 }
 /* ---- "3 LOCS e 2 TOCAS" vira 3 LOC e 2 TOCA ---- */
 const TIPOS_CENA=['TOCA SOLO','ACORDES','RITMO','DEDIL','TOCA','LOC','TAB'];
@@ -3875,7 +3877,7 @@ function criarCenasPorQuantidade(){
   });
   caixa.value='';
   organizarAvulsas();
-  juntarAvulsas(); salvarFluxoLocal(); renderFluxoCenas();
+  juntarAvulsas(); salvarFluxoLocal(); repintarCenas();
   return feitas;
 }
 /* o botao so aparece nos tipos que costumam vir sem roteiro */
@@ -3886,7 +3888,7 @@ function aplicarTipoSemRoteiro(){
     && TIPOS_SEM_ROTEIRO.indexOf(FLUXO.tipo||'')>=0;
   cx.style.display=vale?'':'none';
   /* com a tabela vazia, o aviso muda junto: e ele que ensina o caminho */
-  if(!(STATE.flux||[]).length)renderFluxoCenas();
+  if(!(STATE.flux||[]).length)repintarCenas();
 }
 function ordenarFluxo(scenes){
   /* primeiro separa por roteiro (YouTube, site...), depois aplica a ordem oficial dentro de cada um */
@@ -6434,7 +6436,7 @@ function renderFluxoCenas(){
           break;
         }
         organizarAvulsas(); juntarAvulsas();
-        salvarFluxoLocal(); renderFluxoCenas();
+        salvarFluxoLocal(); repintarCenas();
       });
       setTimeout(function(){ crescerCampo(nomeCampo); },0);
     }
@@ -6534,15 +6536,35 @@ function espalharEnsinaArquivos(tipo,coluna){
     if(campo)campo.value=valor;
   });
 }
+/* O nome do tipo para a tabela de arquivos: o do roteiro quando vem do
+   roteiro, e o nome que ela mesma escreveu quando a cena foi feita a mao. */
+function tipoDeArquivo(sc){
+  if(!sc)return '';
+  if(sc.type && sc.type!=='CENA')return sc.type;
+  const g=String(sc.grupo||grupoDaCena(sc.label)||'').trim();
+  return g;
+}
+function tiposDeArquivo(){
+  const vistos=[], extras=[];
+  (STATE.flux||[]).forEach(function(sc){
+    const t=tipoDeArquivo(sc);
+    if(!t || vistos.indexOf(t)>=0)return;
+    vistos.push(t);
+    if(ORDEM.indexOf(t)<0)extras.push(t);     /* nome dela: fica na ordem em que aparece */
+  });
+  return ORDEM.filter(function(t){ return vistos.indexOf(t)>=0; }).concat(extras);
+}
 function renderArquivos(){
   const tb=document.getElementById('fxArquivos');
   if(!tb)return;
-  const tipos=[];
-  (STATE.flux||[]).forEach(function(sc){ if(tipos.indexOf(sc.type)<0)tipos.push(sc.type); });
-  const linhas=ORDEM.filter(function(t){ return tipos.indexOf(t)>=0; });
+  const linhas=tiposDeArquivo();
   tb.innerHTML='';
   if(!linhas.length){
-    tb.innerHTML='<tr><td colspan="4" style="padding:10px;color:var(--muted);font-size:0.85rem">Suba o roteiro na aba TP que os tipos de cena aparecem aqui.</td></tr>';
+    const semRoteiro=TIPOS_SEM_ROTEIRO.indexOf(FLUXO.tipo||'')>=0;
+    tb.innerHTML='<tr><td colspan="4" style="padding:10px;color:var(--muted);font-size:0.85rem">'
+      +(semRoteiro
+        ? 'As cenas que você criar no fluxo aparecem aqui.'
+        : 'Suba o roteiro na aba TP que os tipos de cena aparecem aqui.')+'</td></tr>';
     return;
   }
   linhas.forEach(function(t){
