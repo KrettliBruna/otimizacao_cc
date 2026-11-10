@@ -3761,10 +3761,15 @@ function novaAvulsa(rotulo){
   semenAvulsa++;
   return {id:'a'+Date.now().toString(36)+semenAvulsa.toString(36),rotulo:rotulo||''};
 }
+/* o nome sem o numero: e o que diz se duas cenas sao do mesmo tipo */
+function grupoDaCena(rotulo){
+  return String(rotulo||'').trim().replace(/\s*\d+\s*$/,'').toUpperCase();
+}
 function juntarAvulsas(){
   const base=STATE.base||[];
   STATE.flux=base.concat(listaAvulsas().map(function(a,i){
-    return {type:'CENA',id:a.id,num:i+1,label:a.rotulo||'',secao:'',text:[]};
+    return {type:'CENA',id:a.id,num:i+1,label:a.rotulo||'',
+            grupo:grupoDaCena(a.rotulo),secao:'',text:[]};
   }));
 }
 function criarCenaAvulsa(){
@@ -6231,6 +6236,9 @@ function renderFluxoCenas(){
   av.innerHTML='';
   let secAnterior=null, tipoAnterior=null;
   cenas.forEach(function(sc,i){
+    /* nas cenas criadas a mao o tipo esta no nome que ela escreveu: os LOC
+       se separam dos TOCA pela mesma linha de espaco do roteiro */
+    const tipoAtual=(sc.grupo!==undefined && sc.grupo!=='')?sc.grupo:sc.type;
     if(sc.secao && sc.secao!==secAnterior){
       if(secAnterior!==null){
         const dv=document.createElement('tr');
@@ -6239,13 +6247,13 @@ function renderFluxoCenas(){
         tb.appendChild(dv);
       }
       tipoAnterior=null;
-    } else if(tipoAnterior!==null && sc.type!==tipoAnterior){
+    } else if(tipoAnterior!==null && tipoAtual!==tipoAnterior){
       const vz=document.createElement('tr');       /* linha de espaco entre LOC e TAB, etc */
       vz.className='espaco';
       vz.innerHTML=new Array(colunasDaTabela()+1).join('<td></td>');
       tb.appendChild(vz);
     }
-    secAnterior=sc.secao; tipoAnterior=sc.type;
+    secAnterior=sc.secao; tipoAnterior=tipoAtual;
     const k=chaveCena(sc,i);
     if(!FLUXO.cenas[k])FLUXO.cenas[k]={cam:'',takes:'',obs:'',dataGrav:'',diaria:1};
     const d=FLUXO.cenas[k];
@@ -6282,6 +6290,7 @@ function renderFluxoCenas(){
         const a=listaAvulsas();
         for(let z=0;z<a.length;z++)if(a[z].id===sc.id){ a[z].rotulo=nomeCampo.value; break; }
         sc.label=nomeCampo.value;
+        sc.grupo=grupoDaCena(nomeCampo.value);
         crescerCampo(nomeCampo);
         salvarFluxoLocal();
       });
