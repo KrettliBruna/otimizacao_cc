@@ -184,6 +184,14 @@
   table.fx td input.marcado{background:var(--amber-soft)!important;}
   #fxDiasLista input.marcado{background:var(--amber-soft)!important;}
   table.fx td.cena{font-family:'Courier New',monospace;font-weight:700;text-align:center;padding:16px 10px;white-space:nowrap;}
+  /* o nome da cena criada a mao e escrito por ela, com a mesma cara. Cresce
+     em altura: nome comprido tem que caber inteiro, nao ser cortado */
+  table.fx td.cena:has(.fx-cena-campo){white-space:normal;}
+  textarea.fx-cena-campo{width:100%;border:none;background:transparent;display:block;
+    color:inherit;font:inherit;line-height:1.2;text-align:center;padding:0;
+    text-transform:uppercase;resize:none;overflow:hidden;}
+  textarea.fx-cena-campo:focus{outline:2px solid var(--amber);outline-offset:2px;}
+  textarea.fx-cena-campo::placeholder{color:var(--muted);font-weight:400;text-transform:none;}
   /* faixa de destaque separando um roteiro do outro */
   table.fx tr.divisor td{background:var(--amber-soft);border:none;padding:11px 2px;text-align:center;
     font-size:0.78rem;letter-spacing:0.22em;color:var(--amber);font-weight:700;}
@@ -283,12 +291,13 @@
   table.fx td.cena.armado .fx-cena-nome{display:none;}
   table.fx td.cena.armado{padding-left:4px;padding-right:4px;}
   #fxMicroEntrada{margin:0 0 12px;}
-  #fxMicroEntrada label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;
+  #fxAvulsas{margin:12px 0 0;}
+  #fxMicroEntrada label,.caixa-nomes label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;
     color:var(--muted);font-weight:700;display:block;margin-bottom:5px;}
-  #fxMicroEntrada textarea{width:100%;border:1px solid var(--line);border-radius:8px;
+  #fxMicroEntrada textarea,.caixa-nomes textarea{width:100%;border:1px solid var(--line);border-radius:8px;
     background:var(--panel);color:var(--ink);padding:9px 11px;font:inherit;
     font-size:0.86rem;resize:vertical;line-height:1.4;}
-  #fxMicroEntrada .fx-micro-bts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  #fxMicroEntrada .fx-micro-bts,.caixa-nomes .fx-micro-bts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
   /* um em cima do outro e bem separados: na folha ela circula o escolhido
      com a caneta, e o circulo nao pode encostar no outro */
   /* as duas classes juntas: a regra geral .fx-chips vem depois no arquivo
@@ -589,8 +598,13 @@
     </tr></thead><tbody id="fxCenas"></tbody></table>
     <!-- Desafio, review e editorial muitas vezes nao tem roteiro: a cena
          entra uma a uma, aqui. So existe na tela, nunca no PDF.         -->
-    <div class="nao-no-pdf" id="fxAvulsas" style="display:none">
-      <button type="button" class="mini" id="btnCenaAvulsa">+ uma cena</button>
+    <div class="nao-no-pdf caixa-nomes" id="fxAvulsas" style="display:none">
+      <label for="fxQuantas">Cenas — escreva quantas de cada</label>
+      <textarea id="fxQuantas" rows="2" placeholder="3 LOCs e 2 TOCAs"></textarea>
+      <div class="fx-micro-bts">
+        <button type="button" class="mini" id="btnCriarCenas">Criar cenas</button>
+        <button type="button" class="mini" id="btnCenaAvulsa">+ uma cena</button>
+      </div>
     </div>
   </div>
 
@@ -3740,29 +3754,79 @@ function listaAvulsas(){
   if(!Array.isArray(FLUXO.avulsas))FLUXO.avulsas=[];
   return FLUXO.avulsas;
 }
+/* cada cena a mao tem um numero proprio que nunca muda: e por ele que o
+   que foi preenchido fica preso a ela, mesmo que o nome seja reescrito */
+let semenAvulsa=0;
+function novaAvulsa(rotulo){
+  semenAvulsa++;
+  return {id:'a'+Date.now().toString(36)+semenAvulsa.toString(36),rotulo:rotulo||''};
+}
 function juntarAvulsas(){
   const base=STATE.base||[];
-  STATE.flux=base.concat(listaAvulsas().map(function(rot,i){
-    return {type:'CENA',num:i+1,label:rot,secao:'',text:[]};
+  STATE.flux=base.concat(listaAvulsas().map(function(a,i){
+    return {type:'CENA',id:a.id,num:i+1,label:a.rotulo||'',secao:'',text:[]};
   }));
 }
-function proximoRotuloAvulso(){
-  const usados=listaAvulsas();
-  for(let n=1;n<=999;n++){
-    const rot='CENA '+(n<10?'0':'')+n;
-    if(usados.indexOf(rot)<0)return rot;
-  }
-  return 'CENA';
-}
 function criarCenaAvulsa(){
-  listaAvulsas().push(proximoRotuloAvulso());
+  listaAvulsas().push(novaAvulsa(''));     /* sem nome: ela escreve */
   juntarAvulsas(); salvarFluxoLocal(); renderFluxoCenas();
 }
-function tirarCenaAvulsa(rot){
-  const l=listaAvulsas(); const k=l.indexOf(rot);
-  if(k<0)return;
-  l.splice(k,1);
+function tirarCenaAvulsa(id){
+  const l=listaAvulsas();
+  for(let i=0;i<l.length;i++){
+    if(l[i].id===id){ l.splice(i,1); break; }
+  }
   juntarAvulsas(); salvarFluxoLocal(); renderFluxoCenas();
+}
+/* ---- "3 LOCs e 2 TOCAs" vira 3 LOC e 2 TOCA ---- */
+const TIPOS_CENA=['TOCA SOLO','ACORDES','RITMO','DEDIL','TOCA','LOC','TAB'];
+function nomeDeCena(bruto){
+  let t=String(bruto||'').replace(/[.,;:]+\s*$/,'')
+    .replace(/\s+(e|and|\+|&)\s*$/i,'').trim().replace(/\s+/g,' ').toUpperCase();
+  if(!t)return '';
+  for(let i=0;i<TIPOS_CENA.length;i++){
+    const k=TIPOS_CENA[i];
+    if(t===k || t===k+'S' || t===k+'ES')return k;
+  }
+  /* nome que eu nao conheco fica como ela escreveu, so no singular */
+  return (t.length>3 && /S$/.test(t)) ? t.slice(0,-1) : t;
+}
+function lerQuantidades(texto){
+  const r=[]; const re=/(\d+)\s*([^\d,;\/\n]+)/g; let m;
+  while((m=re.exec(String(texto||'')))){
+    const nome=nomeDeCena(m[2]), n=parseInt(m[1],10);
+    if(nome && n>0 && n<=99)r.push({nome:nome,n:n});
+  }
+  return r;
+}
+function proximoNumeroDaCena(nome){
+  const seguro=nome.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const re=new RegExp('^'+seguro+'\\s*0*(\\d+)$','i');
+  let maior=0;
+  (STATE.flux||[]).forEach(function(sc){
+    const m=re.exec(String(sc.label||'').trim());
+    if(m)maior=Math.max(maior,parseInt(m[1],10));
+  });
+  return maior+1;
+}
+function criarCenasPorQuantidade(){
+  const caixa=document.getElementById('fxQuantas');
+  if(!caixa)return 0;
+  const pedidos=lerQuantidades(caixa.value);
+  if(!pedidos.length)return 0;
+  const l=listaAvulsas();
+  let feitas=0;
+  pedidos.forEach(function(p){
+    let n=proximoNumeroDaCena(p.nome);
+    for(let i=0;i<p.n;i++,n++){
+      l.push(novaAvulsa(p.nome+' '+(n<10?'0':'')+n));
+      feitas++;
+    }
+    juntarAvulsas();        /* conta as recem-criadas na proxima numeracao */
+  });
+  caixa.value='';
+  juntarAvulsas(); salvarFluxoLocal(); renderFluxoCenas();
+  return feitas;
 }
 /* o botao so aparece nos tipos que costumam vir sem roteiro */
 function aplicarTipoSemRoteiro(){
@@ -3771,6 +3835,8 @@ function aplicarTipoSemRoteiro(){
   const vale=(FLUXO.modelo||'padrao')!=='micro'
     && TIPOS_SEM_ROTEIRO.indexOf(FLUXO.tipo||'')>=0;
   cx.style.display=vale?'':'none';
+  /* com a tabela vazia, o aviso muda junto: e ele que ensina o caminho */
+  if(!(STATE.flux||[]).length)renderFluxoCenas();
 }
 function ordenarFluxo(scenes){
   /* primeiro separa por roteiro (YouTube, site...), depois aplica a ordem oficial dentro de cada um */
@@ -5404,9 +5470,14 @@ function normalizarFluxo(){
   if(!FLUXO.micro||typeof FLUXO.micro!=='object')FLUXO.micro={};
   /* a microaula tem lista propria; o que vier de fora vira linha completa */
   FLUXO.microLista=(Array.isArray(FLUXO.microLista)?FLUXO.microLista:[]).map(linhaMicro);
-  /* as cenas criadas a mao sao so os rotulos delas */
+  /* cada cena a mao tem numero proprio e nome; fluxo antigo guardava so o
+     nome, entao ganha um numero agora                                    */
   FLUXO.avulsas=(Array.isArray(FLUXO.avulsas)?FLUXO.avulsas:[])
-    .filter(function(r){ return typeof r==='string' && r; });
+    .map(function(a){
+      if(typeof a==='string')return novaAvulsa(a);
+      if(a && typeof a==='object')return {id:a.id||novaAvulsa('').id,rotulo:a.rotulo||''};
+      return null;
+    }).filter(Boolean);
   if(!Array.isArray(FLUXO.diarias))FLUXO.diarias=[{},{},{}];
   for(let i=0;i<3;i++){
     const d=FLUXO.diarias[i]||(FLUXO.diarias[i]={});
@@ -5557,7 +5628,12 @@ function formatarData(bruto){
   }
   return bruto;
 }
-function chaveCena(sc,i){ return (sc.secao||'-')+'|'+sc.label+'|'+i; }
+/* a cena a mao e identificada pelo numero proprio dela: assim o que foi
+   preenchido nao se solta quando ela reescreve o nome da cena */
+function chaveCena(sc,i){
+  if(sc && sc.id)return 'avulsa|'+sc.id;
+  return (sc.secao||'-')+'|'+sc.label+'|'+i;
+}
 
 /* A coluna "Data de gravacao" so existe no fluxo de varias diarias. Ela e
    inserida e removida de verdade, em vez de escondida com display:none: numa
@@ -6094,7 +6170,8 @@ function renderFluxoCenas(){
     const semRoteiro=TIPOS_SEM_ROTEIRO.indexOf(FLUXO.tipo||'')>=0;
     av.innerHTML='<div class="status warn">Nenhuma cena ainda. '
       +(semRoteiro
-        ? 'Aperte "+ uma cena" aqui embaixo para criar uma de cada vez, ou suba o roteiro na aba TP.'
+        ? 'Escreva aí embaixo quantas de cada — <b>3 LOCs e 2 TOCAs</b> — e aperte Enter, '
+          +'ou use "+ uma cena" para criar uma de cada vez e dar o nome você mesma.'
         : 'Suba o roteiro na aba TP que as cenas aparecem aqui.')+'</div>';
     return;
   }
@@ -6123,9 +6200,13 @@ function renderFluxoCenas(){
     const tr=document.createElement('tr');
     tr.className='d'+(d.diaria||1);
     tr.innerHTML='<td class="diaria">'+CORES_DIARIA[d.diaria||1]+'</td>'
-      +'<td class="cena"><span class="fx-cena-nome">'+escapeHtml(sc.label)+'</span>'
-      +(sc.type==='CENA'
-        ? '<button type="button" class="fx-x nao-no-pdf" title="tirar esta cena">×</button>' : '')
+      +'<td class="cena">'
+      +(sc.id
+        /* cena criada a mao: o nome e dela para escrever */
+        ? '<textarea class="fx-cena-nome fx-cena-campo" rows="1" placeholder="escreva">'
+            +escapeHtml(sc.label)+'</textarea>'
+          +'<button type="button" class="fx-x nao-no-pdf" title="tirar esta cena">×</button>'
+        : '<span class="fx-cena-nome">'+escapeHtml(sc.label)+'</span>')
       +'</td>'
       +'<td><input type="text" class="fx-cam" inputmode="numeric" maxlength="3" value="'+escapeHtml(d.cam||'')+'"></td>'
       +'<td><input type="text" value="'+escapeHtml(d.takes||'')+'"></td>'
@@ -6135,13 +6216,29 @@ function renderFluxoCenas(){
     tdD.onclick=function(){ aplicarDiaria(i,(d.diaria||1)%3+1); };
     const bx=tr.querySelector('.fx-x');
     if(bx)bx.onclick=function(){      /* dois toques, como na microaula */
-      if(bx.classList.contains('pronto')){ tirarCenaAvulsa(sc.label); return; }
+      if(bx.classList.contains('pronto')){ tirarCenaAvulsa(sc.id); return; }
       desarmarXis();
       bx.classList.add('pronto'); bx.textContent='tirar?';
       bx.closest('td').classList.add('armado');
       bx.__relogio=setTimeout(desarmarXis,5000);
     };
-    const ins=tr.querySelectorAll('input');
+    /* o nome da cena a mao tambem e um input: fica de fora desta conta */
+    const nomeCampo=tr.querySelector('.fx-cena-campo');
+    if(nomeCampo){
+      nomeCampo.addEventListener('input',function(){
+        const a=listaAvulsas();
+        for(let z=0;z<a.length;z++)if(a[z].id===sc.id){ a[z].rotulo=nomeCampo.value; break; }
+        sc.label=nomeCampo.value;
+        crescerCampo(nomeCampo);
+        salvarFluxoLocal();
+      });
+      /* Enter aqui fecha o nome em vez de abrir outra linha */
+      nomeCampo.addEventListener('keydown',function(e){
+        if(e.key==='Enter'){ e.preventDefault(); nomeCampo.blur(); }
+      });
+      setTimeout(function(){ crescerCampo(nomeCampo); },0);
+    }
+    const ins=tr.querySelectorAll('input:not(.fx-cena-campo)');
     (temColunaData()?['cam','takes','dataGrav','obs']:['cam','takes','obs']).forEach(function(campo,j){
       ins[j].addEventListener('input',function(){
         d[campo]=ins[j].value;
@@ -6367,6 +6464,17 @@ function montarAbaFluxo(){
   ligarBotoesMicro();
   const avulsa=document.getElementById('btnCenaAvulsa');
   if(avulsa)avulsa.onclick=criarCenaAvulsa;
+  const criarQtd=document.getElementById('btnCriarCenas');
+  if(criarQtd)criarQtd.onclick=criarCenasPorQuantidade;
+  const caixaQtd=document.getElementById('fxQuantas');
+  if(caixaQtd){
+    /* Enter ou sair do campo ja cria; enquanto escreve, nada acontece:
+       "3 LO" viraria tres cenas chamadas LO                            */
+    caixaQtd.addEventListener('blur',criarCenasPorQuantidade);
+    caixaQtd.addEventListener('keydown',function(e){
+      if(e.key==='Enter'){ e.preventDefault(); criarCenasPorQuantidade(); }
+    });
+  }
   aplicarModelo();
   atualizarFluxo();
 }
