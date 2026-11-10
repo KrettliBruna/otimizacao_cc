@@ -226,7 +226,10 @@
   .fx-modo-micro .fx-nao-micro{display:none;}
   /* a microaula nao tem nome de video: a folha e da leva inteira */
   .fx-modo-micro #fxTitulo{display:none;}
-  .fx-modo-micro #fxCabecalho{grid-template-columns:repeat(2,1fr);}
+  /* a data de gravacao e o contrario: so existe na microaula */
+  .fx-so-micro-campo{display:none;}
+  .fx-modo-micro .fx-so-micro-campo{display:block;}
+  .fx-modo-micro #fxCabecalho{grid-template-columns:repeat(3,1fr);}
   /* ref visual: cola com Ctrl+V ou arrasta a imagem pra cima do quadrinho */
   .fx-ref{min-height:54px;border:1px dashed var(--line);border-radius:6px;display:flex;
     align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--paper);}
@@ -260,6 +263,8 @@
   textarea.fx-luzcampo:focus{outline:2px solid var(--amber);outline-offset:-2px;}
   .fx-luzrot{display:flex;align-items:center;justify-content:space-between;gap:4px;}
   .fx-celfundo,.fx-celrecorte{display:flex;align-items:center;gap:2px;flex:0 0 auto;}
+  .fx-celinst{display:flex;align-items:center;gap:2px;}
+  .fx-celinst input{min-width:0;}
   /* listinha para repetir um fundo ja usado na aula */
   select.fx-repetir{appearance:none;-webkit-appearance:none;border:none;background:transparent;
     color:var(--muted);font-size:0.7rem;cursor:pointer;padding:0 2px;width:16px;text-align:center;}
@@ -383,9 +388,11 @@
   /* na folha a pagina e estreita; sem isto o cabecalho quebraria em 2x2 */
   #fxCabecalho{grid-template-columns:repeat(4,1fr)!important;}
   /* na microaula sobram dois campos: eles ocupam a largura toda */
-  .fx-modo-micro #fxCabecalho{grid-template-columns:repeat(2,1fr)!important;}
+  .fx-modo-micro #fxCabecalho{grid-template-columns:repeat(3,1fr)!important;}
   .fx-modo-micro .fx-nao-micro{display:none!important;}
   .fx-modo-micro #fxTitulo{display:none!important;}
+  .fx-so-micro-campo{display:none!important;}
+  .fx-modo-micro .fx-so-micro-campo{display:block!important;}
   /* na folha, quadrinho de ref vazio nao vira caixa pontilhada nem dica */
   .fx-ref{border:none!important;min-height:0!important;background:transparent!important;}
   .fx-ref .dica{display:none!important;}
@@ -582,6 +589,10 @@
     <div class="fx-nao-micro"><label>Tipo</label><select id="fxTipo"></select></div>
     <div class="fx-nao-micro"><label>Estúdio</label><select id="fxEstudio"></select></div>
     <div><label>Instrumento</label><select id="fxInstrumento"></select></div>
+    <!-- a microaula e uma leva inteira num dia so: a data e dela, nao de
+         cada cena, e e ela que da nome ao arquivo salvo -->
+    <div class="fx-so-micro-campo"><label>Data de gravação</label>
+      <input type="text" id="fxDataMicro" class="fx-data" placeholder="__/__/____"></div>
   </div>
 
   <div id="fxBlocoCenas">
@@ -3765,6 +3776,39 @@ function novaAvulsa(rotulo){
 function grupoDaCena(rotulo){
   return String(rotulo||'').trim().replace(/\s*\d+\s*$/,'').toUpperCase();
 }
+function numeroDaCena(rotulo){
+  const m=String(rotulo||'').trim().match(/(\d+)\s*$/);
+  return m?parseInt(m[1],10):Infinity;     /* sem numero: fim do grupo */
+}
+/* Escreveu so "LOC": ganha o proximo numero livre daquele tipo. Se ela
+   mesma escreveu o numero, respeita o que ela pos.                     */
+function fecharNomeDaCena(a){
+  const rot=String(a.rotulo||'').trim();
+  if(!rot || /\d\s*$/.test(rot))return;
+  const n=proximoNumeroDaCena(rot);
+  a.rotulo=rot+' '+(n<10?'0':'')+n;
+}
+/* Mantem as cenas a mao juntas por tipo: os LOC de um lado, os TOCA do
+   outro, cada grupo na ordem do numero. A ordem dos grupos e a de quem
+   apareceu primeiro, para a lista nao dar cambalhota a cada cena nova. */
+function organizarAvulsas(){
+  const l=listaAvulsas();
+  const ordem=[], grupos={};
+  l.forEach(function(a){
+    const g=grupoDaCena(a.rotulo);
+    if(!grupos[g]){ grupos[g]=[]; ordem.push(g); }
+    grupos[g].push(a);
+  });
+  /* a que ainda nao tem nome fica por ultimo, esperando ser batizada */
+  const semNome=ordem.indexOf('');
+  if(semNome>=0){ ordem.splice(semNome,1); ordem.push(''); }
+  const nova=[];
+  ordem.forEach(function(g){
+    grupos[g].sort(function(x,y){ return numeroDaCena(x.rotulo)-numeroDaCena(y.rotulo); });
+    grupos[g].forEach(function(a){ nova.push(a); });
+  });
+  FLUXO.avulsas=nova;
+}
 function juntarAvulsas(){
   const base=STATE.base||[];
   STATE.flux=base.concat(listaAvulsas().map(function(a,i){
@@ -3830,6 +3874,7 @@ function criarCenasPorQuantidade(){
     juntarAvulsas();        /* conta as recem-criadas na proxima numeracao */
   });
   caixa.value='';
+  organizarAvulsas();
   juntarAvulsas(); salvarFluxoLocal(); renderFluxoCenas();
   return feitas;
 }
@@ -5137,9 +5182,25 @@ async function abrirArquivoFluxo(arq){
 /* os dois arquivos saem com o mesmo nome da aula, lado a lado na pasta
    escolhida: <aula>.pdf e <aula>.json                                       */
 function nomeBaseDoFluxo(){
+  /* A microaula nao tem nome de video: a folha e de uma leva inteira. O que
+     identifica ela e o dia e quem gravou — 10_11_caico —, que e tambem como
+     ela acha o arquivo depois no iCloud.                                   */
+  if((FLUXO.modelo||'padrao')==='micro'){
+    const n=nomeMicroaula();
+    if(n)return n;
+  }
   const campo=document.getElementById('nomeAula');
   const nome=(FLUXO.titulo||(campo?campo.value:'')||'').trim();
   return nome?slugifyAula(nome):'fluxo';
+}
+/* dia_mes_instrutor, sem acento: "10/11/2026" + "Caiçó" -> 10_11_caico */
+function nomeMicroaula(){
+  const d=String(FLUXO.dataMicro||'').match(/(\d{1,2})\D+(\d{1,2})/);
+  const quem=String(FLUXO.instrutor||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+  if(!d && !quem)return '';
+  const dia=d?('0'+d[1]).slice(-2)+'_'+('0'+d[2]).slice(-2):'';
+  return [dia,quem].filter(Boolean).join('_');
 }
 
 /* ================= limpar por aba ================= */
@@ -5425,7 +5486,9 @@ function ligarZonaPdf(){
 }
 
 /* ================= aba Fluxo ================= */
-const INSTRUTORES=['','Vaz','Caico','Vini','Noel','Fof\u00e3o','Tarsius'];
+/* "V\u00e1rios" e para desafio, review e editorial, que juntam varios instrutores
+   na mesma gravacao \u2014 e como a planilha da sprint ja anota.              */
+const INSTRUTORES=['','Vaz','Caico','Vini','Noel','Fof\u00e3o','Tarsius','V\u00e1rios'];
 /* instrutor que toca sempre o mesmo instrumento */
 const INSTRUMENTO_PADRAO={'Vini':'Guitarra','Tarsius':'Guitarra','Fof\u00e3o':'Viol\u00e3o','Vaz':'Viol\u00e3o'};
 const TIPOS=['','Vídeo aula','Desafio','Review','Editorial','Academy','Insert'];
@@ -5436,6 +5499,13 @@ const ESTUDIOS=['','A','B','C'];
 const VIOLAO_ACO=['RX 320','RX 220'];
 const VIOLAO_NYLON=['RX 210','RX 216','RX 515','RX 621'];
 const GUITARRA_PHX=['Les Paul AC-1 vermelha','TL2-ALV vermelha','ST-2 creme','ST-2 azul','STH ALV preta'];
+/* Os instrumentos do estudio, por familia. A coluna "Guitarra / violao" da
+   microaula oferece primeiro os da familia do instrutor — Vini e Tarsius
+   tocam guitarra, Fofao e Vaz tocam violao — e depois os outros.        */
+const INSTRUMENTOS_DO_ESTUDIO={
+  'Violão':VIOLAO_ACO.concat(VIOLAO_NYLON),
+  'Guitarra':GUITARRA_PHX.slice()
+};
 const CORES_DIARIA={1:'1ª',2:'2ª',3:'3ª'};
 const PRODUTORAS=['Bruna','Samira'];
 
@@ -5531,6 +5601,8 @@ function repintarFluxo(){
   juntarAvulsas();      /* as cenas a mao entram antes de a tabela ser desenhada */
   document.getElementById('fxTitulo').value=FLUXO.titulo||'';
   document.getElementById('fxInstrutor').value=FLUXO.instrutor||'';
+  const campoDataMicro=document.getElementById('fxDataMicro');
+  if(campoDataMicro)campoDataMicro.value=FLUXO.dataMicro||'';
   document.getElementById('fxTipo').value=FLUXO.tipo||'';
   document.getElementById('fxInstrumento').value=FLUXO.instrumento||'';
   document.getElementById('fxEstudio').value=FLUXO.estudio||'';
@@ -5968,6 +6040,57 @@ function faixaFundo(nome,qtd){
   tr.appendChild(td);
   return tr;
 }
+/* A familia que o instrutor toca: a dele, quando e sempre a mesma, senao a
+   que esta escolhida no cabecalho.                                       */
+function familiaDoInstrutor(){
+  return INSTRUMENTO_PADRAO[FLUXO.instrutor] || FLUXO.instrumento || '';
+}
+/* a listinha da coluna "Guitarra / violao": a familia do instrutor em cima */
+function montarEscolhaInstrumento(cel,d,campo){
+  if(!cel)return;
+  cel.innerHTML='';
+  const minha=familiaDoInstrutor();
+  const familias=Object.keys(INSTRUMENTOS_DO_ESTUDIO)
+    .sort(function(a,b){ return (b===minha?1:0)-(a===minha?1:0); });
+  const jaEscrito=normalizarFundo(d.inst||'');
+  const grupo=familias.map(function(f){
+    const itens=INSTRUMENTOS_DO_ESTUDIO[f]
+      .filter(function(v){ return normalizarFundo(v)!==jaEscrito; });
+    if(!itens.length)return '';
+    return '<optgroup label="'+escapeHtml(f.toLowerCase())+'">'
+      +itens.map(function(v){
+          return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('')
+      +'</optgroup>';
+  }).join('');
+  if(!grupo)return;
+  const sel=document.createElement('select');
+  sel.className='fx-repetir nao-no-pdf';
+  sel.title='escolher um instrumento do estúdio';
+  sel.innerHTML='<option value="">▾</option>'+grupo;
+  sel.addEventListener('change',function(){
+    if(!sel.value)return;
+    d.inst=sel.value; campo.value=sel.value;
+    /* e o contrario tambem: escolher a Les Paul diz que e guitarra */
+    const fam=familiaDoInstrumento(sel.value);
+    if(fam && !FLUXO.instrumento){
+      FLUXO.instrumento=fam;
+      const cab=document.getElementById('fxInstrumento');
+      if(cab)cab.value=fam;
+    }
+    salvarFluxoLocal(); renderMicro();
+  });
+  cel.appendChild(sel);
+}
+function familiaDoInstrumento(nome){
+  const k=normalizarFundo(nome);
+  const fam=Object.keys(INSTRUMENTOS_DO_ESTUDIO);
+  for(let i=0;i<fam.length;i++){
+    const tem=INSTRUMENTOS_DO_ESTUDIO[fam[i]].some(function(v){
+      return normalizarFundo(v)===k; });
+    if(tem)return fam[i];
+  }
+  return '';
+}
 /* A listinha ao lado de Fundo e de Recorte tem duas abas so: o que ja foi
    escrito nesta aula, que se enche sozinho conforme ela preenche, e o
    padrao, sempre na mesma ordem. E um select de verdade porque no iPhone
@@ -6140,7 +6263,8 @@ function renderMicro(){
         +'<div><div class="fx-luzrot"><label>Recorte</label><span class="fx-celrecorte"></span></div>'
           +'<textarea class="fx-luzcampo" rows="1" data-campo="recorte">'+escapeHtml(d.recorte)+'</textarea></div>'
       +'</div></td>'
-      +'<td><input type="text" class="fx-inst" data-campo="inst" value="'+escapeHtml(d.inst)+'"></td>'
+      +'<td><div class="fx-celinst"><input type="text" class="fx-inst" data-campo="inst" value="'
+        +escapeHtml(d.inst)+'"><span class="fx-escolhainst"></span></div></td>'
       +'<td><div class="fx-chips fx-diag">'
         +DIAGRAMAS.map(function(t){
             return '<button type="button" class="fx-chip'+(d.diagrama===t?' on':'')
@@ -6163,6 +6287,8 @@ function renderMicro(){
           agruparPorFundo();
         });
     });
+    montarEscolhaInstrumento(tr.querySelector('.fx-escolhainst'),d,
+                             tr.querySelector('input[data-campo="inst"]'));
     montarEscolhas(tr.querySelector('.fx-celfundo'),d,'fundo',
                    tr.querySelector('textarea[data-campo="fundo"]'),agruparPorFundo);
     montarEscolhas(tr.querySelector('.fx-celrecorte'),d,'recorte',
@@ -6297,6 +6423,18 @@ function renderFluxoCenas(){
       /* Enter aqui fecha o nome em vez de abrir outra linha */
       nomeCampo.addEventListener('keydown',function(e){
         if(e.key==='Enter'){ e.preventDefault(); nomeCampo.blur(); }
+      });
+      /* so ao sair do campo: numera e recoloca a cena no grupo dela.
+         Enquanto escreve, a linha nao sai do lugar.                   */
+      nomeCampo.addEventListener('change',function(){
+        const l=listaAvulsas();
+        for(let z=0;z<l.length;z++){
+          if(l[z].id!==sc.id)continue;
+          fecharNomeDaCena(l[z]);
+          break;
+        }
+        organizarAvulsas(); juntarAvulsas();
+        salvarFluxoLocal(); renderFluxoCenas();
       });
       setTimeout(function(){ crescerCampo(nomeCampo); },0);
     }
@@ -6502,6 +6640,15 @@ function montarAbaFluxo(){
   ligarCampo('fxEstudio','estudio'); ligarCampo('fxBpmEnsina','bpmEnsina');
   ligarCampo('fxBpmToca','bpmToca'); ligarCampo('fxViolaoLivre','violaoLivre');
   ligarCampo('fxGuitarraLivre','guitarraLivre'); ligarCampo('fxObs','obs');
+  ligarCampo('fxDataMicro','dataMicro');
+  const dmicro=document.getElementById('fxDataMicro');
+  if(dmicro){
+    dmicro.addEventListener('blur',function(){
+      const f=formatarData(dmicro.value);
+      if(f!==dmicro.value){ dmicro.value=f; FLUXO.dataMicro=f; salvarFluxoLocal(); }
+    });
+    dmicro.addEventListener('keydown',function(e){ if(e.key==='Enter')dmicro.blur(); });
+  }
   montarChips('fxViolaoAco',VIOLAO_ACO,'violao');
   montarChips('fxViolaoNylon',VIOLAO_NYLON,'violao');
   montarChips('fxGuitarraPhx',GUITARRA_PHX,'guitarra');
