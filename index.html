@@ -724,6 +724,31 @@ Killing In The Name — Rage Against The Machine"></textarea>
     </div>
   </div>
 
+  <!-- Lanca a diaria nas duas planilhas do Google de uma vez so. Nunca sai
+       no PDF: e so um botao de envio. -->
+  <div class="nao-no-pdf caixa-nomes" id="fxLancar">
+    <div class="step-label" style="margin-top:22px">Lançar diária nas planilhas</div>
+    <div class="fx-cab" id="fxLancarCab" style="margin:0 0 12px;grid-template-columns:repeat(3,1fr)">
+      <div><label>Data da diária</label><select id="fxLancarData"></select></div>
+      <div><label>Aba da offload</label><select id="fxLancarAba"></select></div>
+      <div><label>Status no sprint</label><select id="fxLancarStatus"></select></div>
+    </div>
+    <label for="fxLancarAulas">Aulas gravadas — uma por linha</label>
+    <textarea id="fxLancarAulas" rows="4" placeholder="o nome das aulas aparece aqui"></textarea>
+    <div class="fx-micro-bts">
+      <button type="button" class="btn" id="btnLancar">Lançar diária</button>
+      <button type="button" class="mini" id="btnLancarLink">Configurar link</button>
+    </div>
+    <div class="hint" id="fxLancarAviso"></div>
+    <div id="fxLancarConfig" style="display:none;margin-top:10px">
+      <label for="fxLancarUrl">Link do script (cola uma vez só)</label>
+      <textarea id="fxLancarUrl" rows="2" placeholder="https://script.google.com/macros/s/.../exec"></textarea>
+      <div class="fx-micro-bts">
+        <button type="button" class="mini" id="btnLancarSalvarLink">Guardar link</button>
+      </div>
+    </div>
+  </div>
+
   <div class="controls" style="margin-top:22px">
     <button class="btn ghost" id="btnLimparFluxo" onclick="limparFluxo()">Limpar esta aba</button>
     <span class="copied" id="fxLimpoOk" style="display:none">✓ limpo</span>
@@ -5529,6 +5554,8 @@ function chaveFluxo(){
 }
 function salvarFluxoLocal(){
   try{ localStorage.setItem(salvarFluxoLocal.chaveForcada||chaveFluxo(),JSON.stringify(FLUXO)); }catch(e){}
+  /* o que vai para as planilhas acompanha o fluxo sozinho */
+  if(typeof renderLancar==='function')renderLancar();
 }
 let chaveAtualFluxo=null;
 function carregarFluxoLocal(){
@@ -5648,6 +5675,8 @@ function ligarCampo(id,chave){
     FLUXO[chave]=el.value; salvarFluxoLocal();
     /* trocar o tipo decide se da para criar cena a mao */
     if(chave==='tipo' && typeof aplicarTipoSemRoteiro==='function')aplicarTipoSemRoteiro();
+    /* data, tipo, titulo e instrutor sao o que vai para as planilhas */
+    if(typeof renderLancar==='function')renderLancar();
   };
   el.addEventListener('input',guardar);
   el.addEventListener('change',guardar);
@@ -6641,6 +6670,7 @@ function atualizarFluxo(){
     renderFluxoCenas();
     renderArquivos();
     if(FLUXO.modelo==='diarias')renderDias();
+    renderLancar();
   });
   preencherFluxoDoRoteiro();
 }
@@ -6706,8 +6736,167 @@ function montarAbaFluxo(){
       if(e.key==='Enter'){ e.preventDefault(); criarCenasPorQuantidade(); }
     });
   }
+  ligarLancamento();
   aplicarModelo();
   atualizarFluxo();
+}
+
+/* ================= lancar a diaria nas planilhas =================
+   O site nao entra em conta nenhuma: ele manda a diaria para um script
+   que mora dentro da propria planilha do Google e e o script que
+   escreve, como ela. Aqui so se monta o que vai e se mostra o que
+   voltou.                                                            */
+const ABAS_OFFLOAD=['Youtube CIFRA','Youtube LETRAS','Microaula','Academy'];
+const STATUS_SPRINT=['Done','To do'];
+const MESES_SPRINT=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
+                    'Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const CHAVE_LINK='fluxoLancarLink';
+let ABA_NA_MAO=false;     /* ela escolheu a aba da offload por conta propria */
+let AULAS_NA_MAO=false;   /* ela mexeu na lista de aulas por conta propria   */
+
+function linkLancamento(){ try{ return localStorage.getItem(CHAVE_LINK)||''; }catch(e){ return ''; } }
+function guardarLinkLancamento(v){ try{ localStorage.setItem(CHAVE_LINK,v); }catch(e){} }
+
+/* a microaula e uma leva de aulas num dia so; os outros fluxos sao de
+   uma aula, e a diaria do dia junta varias no mesmo lugar la          */
+function aulasDoFluxo(){
+  if((FLUXO.modelo||'padrao')==='micro')
+    return listaMicro().map(function(d){ return (d.musica||'').trim(); })
+                       .filter(function(n){ return n; });
+  const t=(FLUXO.titulo||'').trim();
+  return t?[t]:[];
+}
+function datasDoFluxo(){
+  const m=FLUXO.modelo||'padrao';
+  if(m==='micro')return [FLUXO.dataMicro||''].filter(Boolean);
+  const fonte=m==='diarias'?(FLUXO.dias||[]):(FLUXO.diarias||[]);
+  return fonte.map(function(d){ return (d&&d.data||'').trim(); }).filter(Boolean);
+}
+function abaOffloadPadrao(){
+  if((FLUXO.modelo||'padrao')==='micro')return 'Microaula';
+  if((FLUXO.tipo||'')==='Academy')return 'Academy';
+  return 'Youtube CIFRA';
+}
+function tipoNoSprint(){
+  if((FLUXO.modelo||'padrao')==='micro')return 'microaula';
+  const t=FLUXO.tipo||'';
+  if(t==='Vídeo aula')return 'videoaula';
+  if(TIPOS_SEM_ROTEIRO.indexOf(t)>=0)return 'editorial';
+  return 'outro';
+}
+function canalNoSprint(){
+  return (FLUXO.modelo||'padrao')==='micro' ? 'Social Media' : 'YouTube';
+}
+function mesNoSprint(data){
+  const m=String(data||'').match(/(\d{1,2})\D+(\d{1,2})\D+(\d{2,4})/);
+  if(!m)return '';
+  const mes=parseInt(m[2],10), ano=String(parseInt(m[3],10)%100);
+  if(mes<1||mes>12)return '';
+  return MESES_SPRINT[mes-1]+' '+(ano.length<2?'0'+ano:ano);
+}
+function avisoLancar(texto,erro){
+  const el=document.getElementById('fxLancarAviso');
+  if(!el)return;
+  el.textContent=texto||'';
+  el.style.color=erro?'var(--amber)':'';
+}
+/* repoe o que o fluxo ja sabe, sem apagar o que ela mexeu na mao */
+function renderLancar(forcar){
+  const selData=document.getElementById('fxLancarData');
+  if(!selData)return;
+  if(forcar){ ABA_NA_MAO=false; AULAS_NA_MAO=false; }
+  const datas=datasDoFluxo();
+  const antes=selData.value;
+  opcoes(selData,datas.length?datas:[''],datas.indexOf(antes)>=0?antes:(datas[0]||''));
+  /* a aba acompanha o tipo do fluxo ate ela escolher outra na mao */
+  const selAba=document.getElementById('fxLancarAba');
+  if(selAba && (forcar || !ABA_NA_MAO))opcoes(selAba,ABAS_OFFLOAD,abaOffloadPadrao());
+  const selSt=document.getElementById('fxLancarStatus');
+  if(selSt && !selSt.value)opcoes(selSt,STATUS_SPRINT,'Done');
+  /* a lista acompanha o fluxo ate ela mexer; dai em diante e dela */
+  const caixa=document.getElementById('fxLancarAulas');
+  if(caixa && (forcar || !AULAS_NA_MAO)){
+    const nova=aulasDoFluxo().join('\n');
+    if(caixa.value!==nova && document.activeElement!==caixa)caixa.value=nova;
+  }
+}
+function dadosDoLancamento(){
+  const data=(document.getElementById('fxLancarData')||{}).value||'';
+  const aulas=((document.getElementById('fxLancarAulas')||{}).value||'')
+    .split(/\r?\n/).map(function(s){ return s.trim(); }).filter(Boolean);
+  return {data:data,
+          aulas:aulas,
+          instrutor:FLUXO.instrutor||'',
+          estudio:FLUXO.estudio||'',
+          produto:'Cifra Club ',
+          canal:canalNoSprint(),
+          tipoSprint:tipoNoSprint(),
+          status:(document.getElementById('fxLancarStatus')||{}).value||'Done',
+          abaOffload:(document.getElementById('fxLancarAba')||{}).value||abaOffloadPadrao(),
+          abaSprint:mesNoSprint(data)};
+}
+function empacotarLancamento(d){
+  const bytes=new TextEncoder().encode(JSON.stringify(d));
+  let s=''; bytes.forEach(function(b){ s+=String.fromCharCode(b); });
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+async function lancarDiaria(){
+  const link=linkLancamento();
+  if(!link){ avisoLancar('Falta o link do script. Clique em "Configurar link".',true);
+             mostrarConfigLancar(true); return; }
+  const d=dadosDoLancamento();
+  if(!d.data){ avisoLancar('Falta a data da diária.',true); return; }
+  if(!d.aulas.length){ avisoLancar('Falta a lista de aulas.',true); return; }
+  if(!d.abaSprint){ avisoLancar('A data "'+d.data+'" não deu pra entender.',true); return; }
+  const bt=document.getElementById('btnLancar');
+  if(bt)bt.disabled=true;
+  avisoLancar('Lançando…');
+  try{
+    /* text/plain de proposito: assim o navegador manda direto, sem a
+       pergunta previa que o Google nao responde                        */
+    const r=await fetch(link,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+                              body:JSON.stringify(d),redirect:'follow'});
+    const texto=await r.text();
+    let volta=null; try{ volta=JSON.parse(texto); }catch(e){}
+    if(volta && volta.ok){ avisoLancar('✓ '+volta.recado); }
+    else if(volta){ avisoLancar('Não deu: '+(volta.erro||'erro no script'),true); }
+    else { throw new Error('resposta estranha'); }
+  }catch(e){
+    /* se o envio direto nao passar, abre numa aba: o script escreve
+       igual e ela ve o resultado na tela                              */
+    avisoLancar('Abri numa aba pra concluir — é lá que aparece o resultado.');
+    window.open(link+(link.indexOf('?')<0?'?':'&')+'dados='+empacotarLancamento(d),'_blank');
+  }
+  if(bt)bt.disabled=false;
+}
+function mostrarConfigLancar(abrir){
+  const cx=document.getElementById('fxLancarConfig');
+  if(!cx)return;
+  const mostrar=abrir===undefined?cx.style.display==='none':abrir;
+  cx.style.display=mostrar?'block':'none';
+  if(mostrar){ const u=document.getElementById('fxLancarUrl');
+               if(u){ u.value=linkLancamento(); u.focus(); } }
+}
+function ligarLancamento(){
+  const bt=document.getElementById('btnLancar');
+  if(bt)bt.onclick=lancarDiaria;
+  const selAba=document.getElementById('fxLancarAba');
+  if(selAba)selAba.addEventListener('change',function(){ ABA_NA_MAO=true; });
+  const caixaAulas=document.getElementById('fxLancarAulas');
+  if(caixaAulas)caixaAulas.addEventListener('input',function(){ AULAS_NA_MAO=true; });
+  const cfg=document.getElementById('btnLancarLink');
+  if(cfg)cfg.onclick=function(){ mostrarConfigLancar(); };
+  const gv=document.getElementById('btnLancarSalvarLink');
+  if(gv)gv.onclick=function(){
+    const u=document.getElementById('fxLancarUrl');
+    const v=(u?u.value:'').trim();
+    if(v && !/^https:\/\/script\.google\.com\//.test(v)){
+      avisoLancar('Esse link não parece ser o do script do Google.',true); return; }
+    guardarLinkLancamento(v);
+    mostrarConfigLancar(false);
+    avisoLancar(v?'Link guardado neste aparelho.':'Link apagado.');
+  };
+  renderLancar(true);
 }
 /* Vini e Tarsius tocam guitarra; Fofao e Vaz, violao */
 function aplicarInstrumentoPadrao(){
@@ -6736,6 +6925,7 @@ function aplicarModelo(){
     b.classList.toggle('on',b.dataset.modelo===m);
   });
   if(m==='diarias')renderDias();
+  if(typeof renderLancar==='function')renderLancar();
   /* sempre: fora do modelo ela se limpa sozinha, para nao deixar linhas
      velhas escondidas na tabela da microaula                           */
   renderMicro();
