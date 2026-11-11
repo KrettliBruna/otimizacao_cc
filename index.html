@@ -5524,7 +5524,10 @@ const INSTRUTORES=['','Vaz','Caico','Vini','Noel','Fof\u00e3o','Tarsius','V\u00e
 const INSTRUMENTO_PADRAO={'Vini':'Guitarra','Tarsius':'Guitarra','Fof\u00e3o':'Viol\u00e3o','Vaz':'Viol\u00e3o'};
 const TIPOS=['','Vídeo aula','Desafio','Review','Editorial','Academy','Insert'];
 /* Nestes a gravacao costuma nao ter roteiro: as cenas entram uma a uma */
-const TIPOS_SEM_ROTEIRO=['Desafio','Review','Editorial'];
+const TIPOS_SEM_ROTEIRO=['Desafio','Review','Editorial','Insert'];
+const TIPOS_EDITORIAIS=['Desafio','Review','Editorial'];
+/* insert nao entra no sprint: fica so na planilha de offload */
+const TIPOS_FORA_DO_SPRINT=['Insert'];
 const INSTRUMENTOS=['','Guitarra','Violão','Teclado','Outro'];
 const ESTUDIOS=['','A','B','C'];
 const VIOLAO_ACO=['RX 320','RX 220'];
@@ -6785,8 +6788,11 @@ function tipoNoSprint(){
   if((FLUXO.modelo||'padrao')==='micro')return 'microaula';
   const t=FLUXO.tipo||'';
   if(t==='Vídeo aula')return 'videoaula';
-  if(TIPOS_SEM_ROTEIRO.indexOf(t)>=0)return 'editorial';
+  if(TIPOS_EDITORIAIS.indexOf(t)>=0)return 'editorial';
   return 'outro';
+}
+function vaiProSprint(){
+  return TIPOS_FORA_DO_SPRINT.indexOf(FLUXO.tipo||'')<0;
 }
 function canalNoSprint(){
   return (FLUXO.modelo||'padrao')==='micro' ? 'Social Media' : 'YouTube';
@@ -6837,7 +6843,7 @@ function dadosDoLancamento(){
           tipoSprint:tipoNoSprint(),
           status:(document.getElementById('fxLancarStatus')||{}).value||'Done',
           abaOffload:(document.getElementById('fxLancarAba')||{}).value||abaOffloadPadrao(),
-          abaSprint:mesNoSprint(data)};
+          abaSprint:vaiProSprint()?mesNoSprint(data):''};
 }
 function empacotarLancamento(d){
   const bytes=new TextEncoder().encode(JSON.stringify(d));
@@ -6851,7 +6857,8 @@ async function lancarDiaria(){
   const d=dadosDoLancamento();
   if(!d.data){ avisoLancar('Falta a data da diária.',true); return; }
   if(!d.aulas.length){ avisoLancar('Falta a lista de aulas.',true); return; }
-  if(!d.abaSprint){ avisoLancar('A data "'+d.data+'" não deu pra entender.',true); return; }
+  if(vaiProSprint() && !d.abaSprint){
+    avisoLancar('A data "'+d.data+'" não deu pra entender.',true); return; }
   const bt=document.getElementById('btnLancar');
   if(bt)bt.disabled=true;
   avisoLancar('Lançando…');
