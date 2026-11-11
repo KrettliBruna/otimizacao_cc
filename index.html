@@ -303,6 +303,10 @@
     background:var(--panel);color:var(--ink);padding:9px 11px;font:inherit;
     font-size:0.86rem;resize:vertical;line-height:1.4;}
   #fxMicroEntrada .fx-micro-bts,.caixa-nomes .fx-micro-bts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  /* com o link ja guardado o botao sai de cena: vira so um sinal de que esta
+     configurado, que ainda da para clicar se precisar trocar */
+  .mini.fx-link-ok,.mini.fx-link-ok:hover{border-color:transparent;background:none;
+    color:var(--muted);font-weight:600;padding-left:2px;padding-right:2px;font-size:0.72rem;}
   /* um em cima do outro e bem separados: na folha ela circula o escolhido
      com a caneta, e o circulo nao pode encostar no outro */
   /* as duas classes juntas: a regra geral .fx-chips vem depois no arquivo
@@ -6869,6 +6873,15 @@ async function lancarDiaria(){
   }
   if(bt)bt.disabled=false;
 }
+/* "Configurar link" so enquanto nao ha link; depois, um visto discreto */
+function atualizarBotaoLink(){
+  const b=document.getElementById('btnLancarLink');
+  if(!b)return;
+  const tem=!!linkLancamento();
+  b.textContent=tem?'✓ link configurado':'Configurar link';
+  b.title=tem?'Clique para trocar o link':'';
+  b.classList.toggle('fx-link-ok',tem);
+}
 function mostrarConfigLancar(abrir){
   const cx=document.getElementById('fxLancarConfig');
   if(!cx)return;
@@ -6884,6 +6897,7 @@ function ligarLancamento(){
   if(selAba)selAba.addEventListener('change',function(){ ABA_NA_MAO=true; });
   const caixaAulas=document.getElementById('fxLancarAulas');
   if(caixaAulas)caixaAulas.addEventListener('input',function(){ AULAS_NA_MAO=true; });
+  atualizarBotaoLink();
   const cfg=document.getElementById('btnLancarLink');
   if(cfg)cfg.onclick=function(){ mostrarConfigLancar(); };
   const gv=document.getElementById('btnLancarSalvarLink');
@@ -6893,6 +6907,7 @@ function ligarLancamento(){
     if(v && !/^https:\/\/script\.google\.com\//.test(v)){
       avisoLancar('Esse link não parece ser o do script do Google.',true); return; }
     guardarLinkLancamento(v);
+    atualizarBotaoLink();
     mostrarConfigLancar(false);
     avisoLancar(v?'Link guardado neste aparelho.':'Link apagado.');
   };
