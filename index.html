@@ -144,6 +144,12 @@
   #fxDiarias input{min-width:0;}
   /* a 1a diaria comeca na 2a coluna: a 1a casa com a coluna CENA da tabela */
   #fxDiarias>div:first-child{grid-column-start:2;}
+  /* o rotulo pode quebrar em duas linhas sem desalinhar o campo: as
+     celulas encostam por baixo, entao os campos ficam na mesma linha.
+     Nada de mexer no display aqui: e ele que esconde Tipo e Estudio na
+     microaula.                                                        */
+  #fxCabecalho,#fxLancarCab{align-items:end;}
+  #fxLancarCab{grid-template-columns:repeat(3,1fr);margin:0 0 12px;}
   .fx-cab label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted);font-weight:700;display:block;margin-bottom:5px;}
   .fx-cab select,.fx-cab input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:0.88rem;background:var(--panel);color:var(--ink);}
   .logo-fluxo{display:block;height:22px;width:auto;margin:0 auto 8px;}
@@ -303,10 +309,6 @@
     background:var(--panel);color:var(--ink);padding:9px 11px;font:inherit;
     font-size:0.86rem;resize:vertical;line-height:1.4;}
   #fxMicroEntrada .fx-micro-bts,.caixa-nomes .fx-micro-bts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
-  /* com o link ja guardado o botao sai de cena: vira so um sinal de que esta
-     configurado, que ainda da para clicar se precisar trocar */
-  .mini.fx-link-ok,.mini.fx-link-ok:hover{border-color:transparent;background:none;
-    color:var(--muted);font-weight:600;padding-left:2px;padding-right:2px;font-size:0.72rem;}
   /* um em cima do outro e bem separados: na folha ela circula o escolhido
      com a caneta, e o circulo nao pode encostar no outro */
   /* as duas classes juntas: a regra geral .fx-chips vem depois no arquivo
@@ -358,6 +360,9 @@
     table.fx tr.fx-faixa td{font-size:0.6rem;letter-spacing:0.08em;padding:6px 6px;}
   }
   @media(max-width:760px){.fx-cab{grid-template-columns:1fr 1fr;}
+    /* a microaula e o lancar tambem: tres colunas no celular espremem o
+       rotulo em duas linhas e desalinham os campos */
+    .fx-modo-micro #fxCabecalho,#fxLancarCab{grid-template-columns:1fr 1fr;}
     /* no celular nao cabe alinhar as datas com as colunas da tabela:
        uma embaixo da outra, cada uma na largura toda */
     #fxDiarias{grid-template-columns:1fr;gap:12px;}
@@ -732,7 +737,7 @@ Killing In The Name — Rage Against The Machine"></textarea>
        no PDF: e so um botao de envio. -->
   <div class="nao-no-pdf caixa-nomes" id="fxLancar">
     <div class="step-label" style="margin-top:22px">Lançar diária nas planilhas</div>
-    <div class="fx-cab" id="fxLancarCab" style="margin:0 0 12px;grid-template-columns:repeat(3,1fr)">
+    <div class="fx-cab" id="fxLancarCab">
       <div><label>Data da diária</label><select id="fxLancarData"></select></div>
       <div><label>Aba da offload</label><select id="fxLancarAba"></select></div>
       <div><label>Status no sprint</label><select id="fxLancarStatus"></select></div>
@@ -741,16 +746,8 @@ Killing In The Name — Rage Against The Machine"></textarea>
     <textarea id="fxLancarAulas" rows="4" placeholder="o nome das aulas aparece aqui"></textarea>
     <div class="fx-micro-bts">
       <button type="button" class="btn" id="btnLancar">Lançar diária</button>
-      <button type="button" class="mini" id="btnLancarLink">Configurar link</button>
     </div>
     <div class="hint" id="fxLancarAviso"></div>
-    <div id="fxLancarConfig" style="display:none;margin-top:10px">
-      <label for="fxLancarUrl">Link do script (cola uma vez só)</label>
-      <textarea id="fxLancarUrl" rows="2" placeholder="https://script.google.com/macros/s/.../exec"></textarea>
-      <div class="fx-micro-bts">
-        <button type="button" class="mini" id="btnLancarSalvarLink">Guardar link</button>
-      </div>
-    </div>
   </div>
 
   <div class="controls" style="margin-top:22px">
@@ -6822,12 +6819,13 @@ const ABAS_OFFLOAD=['Youtube CIFRA','Microaula','Academy'];
 const STATUS_SPRINT=['Done','To do'];
 const MESES_SPRINT=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
                     'Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const CHAVE_LINK='fluxoLancarLink';
+/* O link do script mora no proprio arquivo: subir um index novo troca o
+   link em todos os aparelhos de uma vez, e nao ha nada para configurar
+   em nenhum deles.                                                     */
+const LINK_PADRAO='https://script.google.com/macros/s/AKfycby7pd_h1yK3NPnPX-Z09sTuAOPjpkAKoEQvdNc0bQTCt0zfDOl5sakDsgXPmAfZgLJrNw/exec';
+function linkLancamento(){ return LINK_PADRAO; }
 let ABA_NA_MAO=false;     /* ela escolheu a aba da offload por conta propria */
 let AULAS_NA_MAO=false;   /* ela mexeu na lista de aulas por conta propria   */
-
-function linkLancamento(){ try{ return localStorage.getItem(CHAVE_LINK)||''; }catch(e){ return ''; } }
-function guardarLinkLancamento(v){ try{ localStorage.setItem(CHAVE_LINK,v); }catch(e){} }
 
 /* a microaula e uma leva de aulas num dia so; os outros fluxos sao de
    uma aula, e a diaria do dia junta varias no mesmo lugar la          */
@@ -6917,8 +6915,6 @@ function empacotarLancamento(d){
 }
 async function lancarDiaria(){
   const link=linkLancamento();
-  if(!link){ avisoLancar('Falta o link do script. Clique em "Configurar link".',true);
-             mostrarConfigLancar(true); return; }
   const d=dadosDoLancamento();
   if(!d.data){ avisoLancar('Falta a data da diária.',true); return; }
   if(!d.aulas.length){ avisoLancar('Falta a lista de aulas.',true); return; }
@@ -6945,23 +6941,6 @@ async function lancarDiaria(){
   }
   if(bt)bt.disabled=false;
 }
-/* "Configurar link" so enquanto nao ha link; depois, um visto discreto */
-function atualizarBotaoLink(){
-  const b=document.getElementById('btnLancarLink');
-  if(!b)return;
-  const tem=!!linkLancamento();
-  b.textContent=tem?'✓ link configurado':'Configurar link';
-  b.title=tem?'Clique para trocar o link':'';
-  b.classList.toggle('fx-link-ok',tem);
-}
-function mostrarConfigLancar(abrir){
-  const cx=document.getElementById('fxLancarConfig');
-  if(!cx)return;
-  const mostrar=abrir===undefined?cx.style.display==='none':abrir;
-  cx.style.display=mostrar?'block':'none';
-  if(mostrar){ const u=document.getElementById('fxLancarUrl');
-               if(u){ u.value=linkLancamento(); u.focus(); } }
-}
 function ligarLancamento(){
   const bt=document.getElementById('btnLancar');
   if(bt)bt.onclick=lancarDiaria;
@@ -6969,20 +6948,6 @@ function ligarLancamento(){
   if(selAba)selAba.addEventListener('change',function(){ ABA_NA_MAO=true; });
   const caixaAulas=document.getElementById('fxLancarAulas');
   if(caixaAulas)caixaAulas.addEventListener('input',function(){ AULAS_NA_MAO=true; });
-  atualizarBotaoLink();
-  const cfg=document.getElementById('btnLancarLink');
-  if(cfg)cfg.onclick=function(){ mostrarConfigLancar(); };
-  const gv=document.getElementById('btnLancarSalvarLink');
-  if(gv)gv.onclick=function(){
-    const u=document.getElementById('fxLancarUrl');
-    const v=(u?u.value:'').trim();
-    if(v && !/^https:\/\/script\.google\.com\//.test(v)){
-      avisoLancar('Esse link não parece ser o do script do Google.',true); return; }
-    guardarLinkLancamento(v);
-    atualizarBotaoLink();
-    mostrarConfigLancar(false);
-    avisoLancar(v?'Link guardado neste aparelho.':'Link apagado.');
-  };
   renderLancar(true);
 }
 /* Vini e Tarsius tocam guitarra; Fofao e Vaz, violao */
