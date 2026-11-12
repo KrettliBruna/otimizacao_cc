@@ -5821,15 +5821,57 @@ function normalizarFundo(v){
     .toLowerCase().replace(/\s+/g,' ').trim();
 }
 /* ---- o que manda no bloco ----
-   Montar e apontar o Fresnel da trabalho; trocar a cor do fundo e um toque
-   no painel. Entao quando o fundo tem Fresnel ou grid, e o acessorio que
-   define o bloco: "azul + Fresnel" e "laranja + Fresnel" sao gravados na
-   mesma montagem, e a cor passa a ser so a ordem dentro dela. O Kelvin do
-   Fresnel e um giro no aparelho, entao todos cabem no mesmo bloco; o grid
-   e um filtro que se troca, entao cada codigo tem o seu.                 */
-function acessorioDoFundo(v){
-  const linhas=String(v==null?'':v).split(/\r?\n/)
+   O bloco e a montagem inteira: a cor do fundo mais o acessorio. Laranja
+   fica com laranja; laranja com Fresnel fica com laranja com Fresnel; e
+   Fresnel sozinho, sem cor nenhuma, tem bloco proprio. Os blocos de
+   Fresnel ficam todos vizinhos, e os de grid tambem, porque e a montagem
+   que da trabalho — dentro de cada um a cor e o Kelvin viram a ordem.
+   O Kelvin do Fresnel e um giro no aparelho, entao nao divide bloco; o
+   grid e um filtro que se troca, entao cada codigo tem o seu.          */
+function linhasDoFundo(v){
+  return String(v==null?'':v).split(/\r?\n/)
     .map(function(s){ return s.trim(); }).filter(Boolean);
+}
+function ehLinhaDeAcessorio(l){ return /fresnel|grid/i.test(l); }
+/* so o que descreve a cor, sem as linhas de acessorio */
+function textoDaCor(v){
+  return linhasDoFundo(v).filter(function(l){ return !ehLinhaDeAcessorio(l); }).join(' ');
+}
+/* o preto nao entra na tabela de temperatura (nao tem), mas e cor e
+   precisa de nome proprio para formar bloco. A lista se monta na
+   primeira vez que e pedida, porque CORES_FUNDO so existe mais abaixo. */
+let NOMES_DE_COR=null;
+function nomesDeCor(){
+  if(!NOMES_DE_COR)
+    NOMES_DE_COR=CORES_FUNDO.map(function(c){ return c[0]; })
+      .concat([/\bpret|apagad|desligad/]);
+  return NOMES_DE_COR;
+}
+function corDoFundo(v){
+  const t=normalizarFundo(textoDaCor(v));
+  if(!t)return '';
+  /* receita de canais: "Blue: 40% / Green 55%" e uma cor so dela */
+  if(misturaDeCores(t)!==null)return 'mistura '+t;
+  const achadas=[];
+  nomesDeCor().forEach(function(re){
+    const m=t.match(re);
+    if(m)achadas.push({onde:m.index,nome:String(re)});
+  });
+  if(achadas.length){
+    achadas.sort(function(a,b){ return a.onde-b.onde; });
+    /* num degrade as duas cores contam; fora dele vale a primeira */
+    if(/degrad/.test(t))
+      return 'degrade '+achadas.map(function(a){ return a.nome; }).join('+');
+    return achadas[0].nome;
+  }
+  const k=t.match(/(\d{3,5})\s*k\b/);
+  if(k)return 'k'+k[1];
+  const h=t.match(/h\s*[:=]\s*(\d{1,3})/);
+  if(h)return 'hsi'+h[1];
+  return t;
+}
+function acessorioDoFundo(v){
+  const linhas=linhasDoFundo(v);
   for(let i=0;i<linhas.length;i++){
     const l=linhas[i];
     if(/fresnel/i.test(l))
@@ -5843,14 +5885,32 @@ function acessorioDoFundo(v){
   return null;
 }
 function chaveDoBloco(v){
+  const cor=corDoFundo(v), ac=acessorioDoFundo(v);
+  if(!cor && !ac)return '';
+  /* com acessorio, a cor nao divide: o que da trabalho e montar e apontar
+     o aparelho, e trocar a cor do fundo e um toque no painel. So separa
+     quem nao tem cor nenhuma, que e outra montagem.                     */
+  if(ac)return 'a:'+ac.chave+'|'+(cor?'cor':'');
+  return 'c:'+cor;
+}
+/* cores puras primeiro, depois os Fresnel, depois os grids, e no fim o
+   que ainda nao tem fundo */
+function familiaDoBloco(v){
+  if(!chaveDoBloco(v))return 3;
   const ac=acessorioDoFundo(v);
-  if(ac)return 'ac|'+ac.chave;
-  const k=normalizarFundo(v);
-  return k?('cor|'+k):'';
+  if(!ac)return 0;
+  return ac.chave.indexOf('grid')===0?2:1;
+}
+/* a temperatura da cor do fundo, ignorando o Kelvin do acessorio */
+function temperaturaDaCor(v){
+  const t=textoDaCor(v);
+  return t?temperaturaDoTexto(t):Infinity;
 }
 function rotuloDoBloco(v){
   const ac=acessorioDoFundo(v);
-  return ac?ac.rotulo:v;
+  if(!ac)return v;
+  /* o bloco com cor junta varias cores: a faixa nao pode mostrar uma so */
+  return textoDaCor(v)?('Cor + '+ac.rotulo):ac.rotulo;
 }
 /* uma linha so, para a faixa do bloco nao esticar a tabela */
 function resumoFundo(v){
@@ -5954,7 +6014,7 @@ const TRADUZ_COR=[[/\bblue\b/gi,'Azul'],[/\bgreen\b/gi,'Verde'],[/\bred\b/gi,'Ve
   [/\borange\b/gi,'Laranja'],[/\byellow\b/gi,'Amarelo'],[/\bpurple\b/gi,'Roxo'],
   [/\bpink\b/gi,'Rosa'],[/\bwhite\b/gi,'Branco'],[/\bblack\b/gi,'Preto'],
   [/\bcyan\b/gi,'Ciano'],[/\bamber\b/gi,'Âmbar'],[/\bwarm\b/gi,'Quente'],
-  [/\bcool\b/gi,'Frio'],[/\bcold\b/gi,'Frio'],[/\boff\b/gi,'Desligado']];
+  [/\bcool\b/gi,'Frio'],[/\bcold\b/gi,'Frio'],[/\boff\b/gi,'Preto']];
 function padronizarCor(v){
   const t=String(v==null?'':v);
   if(misturaDeCores(normalizarFundo(t))!==null)return t;   /* mistura RGB: não mexe */
@@ -6034,26 +6094,31 @@ function agruparPorFundo(){
     const k=chaveDoBloco(d.fundo);
     if(!grupos[k]){
       grupos[k]=[];
-      ordem.push({k:k, acessorio:k.indexOf('ac|')===0, vazio:k==='',
-                  temp:temperaturaFundo(d.fundo), primeiro:i});
+      ordem.push({k:k, familia:familiaDoBloco(d.fundo),
+                  semCor:!corDoFundo(d.fundo),
+                  temp:temperaturaDaCor(d.fundo), primeiro:i});
     }
     grupos[k].push(d);
   });
   ordem.sort(function(a,b){
-    if(a.vazio!==b.vazio)return a.vazio?1:-1;         /* sem fundo: sempre no fim */
-    if(a.acessorio!==b.acessorio)return a.acessorio?1:-1;  /* montagem por ultimo */
-    if(!a.acessorio && a.temp!==b.temp)return a.temp-b.temp;   /* quente antes de frio */
-    return a.primeiro-b.primeiro;                     /* empate: quem veio antes */
+    if(a.familia!==b.familia)return a.familia-b.familia;
+    /* dentro da familia: o acessorio sem cor nenhuma fica por ultimo */
+    if(a.semCor!==b.semCor)return a.semCor?1:-1;
+    /* so os blocos de cor pura se ordenam por temperatura; os de acessorio
+       ja juntam varias cores, entao vale quem apareceu antes */
+    if(a.familia===0 && a.temp!==b.temp)return a.temp-b.temp;
+    return a.primeiro-b.primeiro;
   });
   const nova=[];
   ordem.forEach(function(g){
     grupos[g.k].sort(function(a,b){
-      /* dentro do bloco de montagem: o Kelvin do Fresnel, depois a cor */
+      /* dentro do bloco: o Kelvin do Fresnel, depois o recorte */
       const oa=(acessorioDoFundo(a.fundo)||{ordem:0}).ordem;
       const ob=(acessorioDoFundo(b.fundo)||{ordem:0}).ordem;
       if(oa!==ob)return oa-ob;
-      const ta=temperaturaFundo(a.fundo), tb2=temperaturaFundo(b.fundo);
-      if(ta!==tb2)return ta-tb2;
+      /* mesmo Kelvin: a cor do fundo decide, do mais quente ao mais frio */
+      const ta=temperaturaDaCor(a.fundo), tb=temperaturaDaCor(b.fundo);
+      if(ta!==tb)return ta-tb;
       return valorRecorte(a.recorte)-valorRecorte(b.recorte);
     });
     grupos[g.k].forEach(function(d){ nova.push(d); });
