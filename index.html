@@ -368,6 +368,26 @@
     #fxDiarias{grid-template-columns:1fr;gap:12px;}
     #fxDiarias>div{padding:0;}
     #fxDiarias>div:first-child{grid-column-start:1;}}
+  /* O iPad em pe tem 834px: ficava do lado "computador" dos pontos de
+     virada, mas com 774px de tabela no lugar dos 1020px do computador.
+     As sete colunas encolhiam juntas — Musica caía para 102px e quebrava
+     o nome em cinco linhas, enquanto Take(s) e Guitarra/violao sobravam
+     vazias, e "Diagrama" era cortada na borda. Aqui as larguras da
+     microaula sao redistribuidas SO nesta faixa.
+     O PDF nao muda: ele e fotografado sempre em 718px (PDF_LARGURA_TELA),
+     abaixo desta faixa. O fluxo padrao tambem nao: esta tabela e so da
+     microaula. Precisa de !important porque as larguras estao escritas
+     no proprio <th>.                                                   */
+  @media(min-width:761px) and (max-width:1079px){
+    table.fx-micro-tab th{font-size:0.58rem;letter-spacing:0.06em;}
+    table.fx-micro-tab th:nth-child(1){width:10%!important;}  /* Cena      */
+    table.fx-micro-tab th:nth-child(2){width:7%!important;}   /* Take(s)   */
+    table.fx-micro-tab th:nth-child(3){width:20%!important;}  /* Musica    */
+    table.fx-micro-tab th:nth-child(4){width:21%!important;}  /* Ref visual*/
+    table.fx-micro-tab th:nth-child(5){width:18%!important;}  /* Iluminacao*/
+    table.fx-micro-tab th:nth-child(6){width:13%!important;}  /* Guit/viol */
+    table.fx-micro-tab th:nth-child(7){width:11%!important;}  /* Diagrama  */
+  }
   /* o QR precisa sair grande: apertado demais a camera nao le */
   /* so valores simples aqui: o gerador de PDF le esta folha inteira e
      reclama de funcao de CSS que ele nao sabe interpretar */
@@ -644,7 +664,7 @@ Killing In The Name — Rage Against The Machine"></textarea>
       </div>
     </div>
     <div id="fxAvisoMicro"></div>
-    <table class="fx"><thead><tr>
+    <table class="fx fx-micro-tab"><thead><tr>
       <!-- as larguras saem do modelo que a Bru usa hoje: a ref visual e a
            coluna mais larga, depois a iluminacao -->
       <th style="width:9%">Cena</th>
