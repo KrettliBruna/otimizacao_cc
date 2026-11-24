@@ -310,6 +310,9 @@
   .fx-x.pronto{background:var(--amber);color:var(--on-amber);font-size:0.58rem;
     font-weight:700;letter-spacing:0.04em;padding:5px 7px;margin:0;}
   table.fx td.cena.armado .fx-cena-nome{display:none;}
+  /* linha ja preenchida: o x sai da frente. Volta com um toque no nome da
+     cena, que e quando ela quer mesmo tirar a linha. Pedido dela, 24/11. */
+  table.fx td.cena.sem-x .fx-x{display:none;}
   table.fx td.cena.armado{padding-left:4px;padding-right:4px;}
   #fxMicroEntrada{margin:0 0 12px;}
   #fxAvulsas{margin:12px 0 0;}
@@ -649,7 +652,7 @@
     <!-- Desafio, review e editorial muitas vezes nao tem roteiro: a cena
          entra uma a uma, aqui. So existe na tela, nunca no PDF.         -->
     <div class="nao-no-pdf caixa-nomes" id="fxAvulsas" style="display:none">
-      <label for="fxQuantas">Cenas — escreva quantas de cada</label>
+      <label for="fxQuantas" id="fxQuantasRot">Cenas — escreva quantas de cada</label>
       <textarea id="fxQuantas" rows="2" placeholder="3 LOCS e 2 TOCAS"></textarea>
       <div class="fx-micro-bts">
         <button type="button" class="mini" id="btnCriarCenas">Criar cenas</button>
@@ -3839,13 +3842,22 @@ function numeroDaCena(rotulo){
   const m=String(rotulo||'').trim().match(/(\d+)\s*$/);
   return m?parseInt(m[1],10):Infinity;     /* sem numero: fim do grupo */
 }
-/* Escreveu so "LOC": ganha o proximo numero livre daquele tipo. Se ela
-   mesma escreveu o numero, respeita o que ela pos.                     */
+/* A numeracao da folha e sempre de dois digitos, nunca de um so.
+   Decisao dela, 24/11.                                               */
+function paraDoisDigitos(n){ return (n<10?'0':'')+n; }
+/* Escreveu so "LOC": ganha o proximo numero livre daquele tipo. Escreveu
+   "LOC 3": respeita o 3 dela, mas escreve "LOC 03".                   */
 function fecharNomeDaCena(a){
   const rot=String(a.rotulo||'').trim();
-  if(!rot || /\d\s*$/.test(rot))return;
-  const n=proximoNumeroDaCena(rot);
-  a.rotulo=rot+' '+(n<10?'0':'')+n;
+  if(!rot)return;
+  const m=rot.match(/^(.*?)\s*0*(\d+)\s*$/);
+  /* em maiuscula, como todo rotulo do roteiro: ela escreve "loc 3" e a
+     folha mostra "LOC 03" */
+  if(m && m[1].trim()){
+    a.rotulo=m[1].trim().toUpperCase()+' '+paraDoisDigitos(parseInt(m[2],10)); return;
+  }
+  if(m)return;                              /* so um numero: deixa ela arrumar */
+  a.rotulo=rot.toUpperCase()+' '+paraDoisDigitos(proximoNumeroDaCena(rot));
 }
 /* Mantem as cenas a mao juntas por tipo: os LOC de um lado, os TOCA do
    outro, cada grupo na ordem do numero. A ordem dos grupos e a de quem
@@ -3868,12 +3880,65 @@ function organizarAvulsas(){
   });
   FLUXO.avulsas=nova;
 }
+/* A cena feita a mao entra ao lado das suas: logo depois da ultima cena do
+   mesmo tipo que veio no roteiro. Escreveu LOC, ela cai no bloco dos LOC;
+   escreveu ACORDES, cai no dos ACORDES. Herda a secao da vizinha, senao a
+   tabela desenha um divisor de roteiro no meio do bloco.
+   Se o roteiro nao tiver nenhuma daquele tipo - o caso de "esqueceram de
+   por TOCA" - ela vai pro fim, que e onde a pessoa vai procurar.
+   Sem roteiro (Desafio, Review) nada muda: base vazia, todas caem no fim,
+   exatamente como antes. */
 function juntarAvulsas(){
-  const base=STATE.base||[];
-  STATE.flux=base.concat(listaAvulsas().map(function(a,i){
-    return {type:'CENA',id:a.id,num:i+1,label:a.rotulo||'',
-            grupo:grupoDaCena(a.rotulo),secao:'',text:[]};
-  }));
+  /* COPIAS das cenas do roteiro, nunca as originais: aqui os numeros sao
+     reescritos, e STATE.base precisa continuar sendo o roteiro cru. Senao
+     cada passagem empurraria tudo de novo, e o 03 viraria 04, 05, 06...
+     `ord` e `labelOrig` sao a identidade fixa da linha: e por eles que o
+     CAM e o take encontram a cena depois que ela muda de lugar e de
+     numero. Sem fluxo com cena acrescentada, ord == posicao e labelOrig
+     == label, entao a chave sai igual a de sempre.                      */
+  const base=(STATE.base||[]).map(function(s,j){
+    return Object.assign({},s,{ord:j,labelOrig:s.label});
+  });
+  const fora=[];
+  const mesmoGrupo=function(sc,g2,sec){
+    return g2===sc.grupo && (sec||'')===(sc.secao||'');
+  };
+  listaAvulsas().forEach(function(a,i){
+    const sc={type:'CENA',id:a.id,num:i+1,label:a.rotulo||'',
+              grupo:grupoDaCena(a.rotulo),secao:'',text:[]};
+    /* O numero que ela escreveu manda: "LOC 03" entra no lugar do 3, nao
+       embaixo do LOC 07. "LOC" sem numero ganha o proximo da conta e cai
+       embaixo de todas as LOC, que da no mesmo.                        */
+    const meu=numeroDaCena(a.rotulo);
+    let ins=-1, ref=-1;
+    if(sc.grupo){
+      for(let j=0;j<base.length;j++){
+        const g=grupoDaCena(base[j].label)||String(base[j].type||'').toUpperCase();
+        if(g!==sc.grupo)continue;
+        ref=j;
+        /* >= e nao >: escreveu LOC 03, ela TOMA o lugar do 03 e o 03
+           antigo desce pra 04. Era isso que ela pediu.                */
+        if(numeroDaCena(base[j].label)>=meu){ ins=j; break; }  /* entra antes desta */
+        ins=j+1;                        /* depois desta, ate achar uma maior */
+      }
+    }
+    if(ref<0){ fora.push(sc); return; }   /* o roteiro nao tem esse tipo */
+    sc.secao=base[ref].secao||'';
+    base.splice(ins,0,sc);
+    /* e empurra as de baixo: o LOC 03 antigo vira LOC 04, o 04 vira 05... */
+    if(meu!==Infinity){
+      for(let j=ins+1;j<base.length;j++){
+        const b2=base[j];
+        if(b2===sc)continue;
+        const g=grupoDaCena(b2.label)||String(b2.type||'').toUpperCase();
+        if(!mesmoGrupo(sc,g,b2.secao))continue;
+        const n=numeroDaCena(b2.label);
+        if(n===Infinity || n<meu)continue;
+        b2.label=String(b2.label).replace(/0*\d+\s*$/,paraDoisDigitos(n+1));
+      }
+    }
+  });
+  STATE.flux=base.concat(fora);
 }
 /* as cenas a mao tambem alimentam a tabela de arquivos por diaria */
 function repintarCenas(){ renderFluxoCenas(); renderArquivos(); }
@@ -3939,13 +4004,22 @@ function criarCenasPorQuantidade(){
   juntarAvulsas(); salvarFluxoLocal(); repintarCenas();
   return feitas;
 }
-/* o botao so aparece nos tipos que costumam vir sem roteiro */
+/* "+ uma cena" vale no padrao e no varias diarias tambem: as vezes o
+   roteiro esquece uma TOCA e ela precisa acrescentar a mao. Pedido da
+   Bru, 24/11.
+   Ja a caixa "escreva quantas de cada" continua so nos tipos que costumam
+   vir sem roteiro nenhum (Desafio, Review, Editorial, Insert): num roteiro
+   que veio inteiro ela so ocuparia espaco. */
 function aplicarTipoSemRoteiro(){
   const cx=document.getElementById('fxAvulsas');
   if(!cx)return;
-  const vale=(FLUXO.modelo||'padrao')!=='micro'
-    && TIPOS_SEM_ROTEIRO.indexOf(FLUXO.tipo||'')>=0;
+  const vale=(FLUXO.modelo||'padrao')!=='micro';
   cx.style.display=vale?'':'none';
+  const semRoteiro=vale && TIPOS_SEM_ROTEIRO.indexOf(FLUXO.tipo||'')>=0;
+  ['fxQuantasRot','fxQuantas','btnCriarCenas'].forEach(function(id){
+    const e=document.getElementById(id);
+    if(e)e.style.display=semRoteiro?'':'none';
+  });
   /* com a tabela vazia, o aviso muda junto: e ele que ensina o caminho */
   if(!(STATE.flux||[]).length)repintarCenas();
 }
@@ -4991,7 +5065,11 @@ function pacoteFluxo(){
   while(dias.length && dias[dias.length-1]===0)dias.pop();
   return {v:2,
     n:campo?campo.value:'',
-    s:cenas.map(function(c){ return [c.type,c.num===null||c.num===undefined?'':c.num,c.label,c.secao||'']; }),
+    /* grava o rotulo ORIGINAL do roteiro, nao o renumerado da tela: assim
+       reabrir o PDF nao empurra os numeros outra vez. E grava o id da cena
+       acrescentada, senao o CAM dela nao acha o caminho de volta.      */
+    s:cenas.map(function(c){ return [c.type,c.num===null||c.num===undefined?'':c.num,
+                                     c.labelOrig||c.label,c.secao||'',c.id||'']; }),
     c:cenas.map(function(c,i){
       const d=FLUXO.cenas[chaveCena(c,i)]||{};
       const linha=CENA_CAMPOS.map(function(k){ return d[k]||''; });
@@ -5006,7 +5084,17 @@ function aplicarPacote(p){
   let dados=null, cenas=null, nome;
   if(p.v===2){
     cenas=(p.s||[]).map(function(a){
-      return {type:a[0],num:a[1]===''?null:a[1],label:a[2],secao:a[3]||''};
+      const o={type:a[0],num:a[1]===''?null:a[1],label:a[2],secao:a[3]||''};
+      if(a[4])o.id=a[4];                  /* cena acrescentada: volta com o id */
+      return o;
+    });
+    /* a identidade das cenas do roteiro e a posicao ENTRE ELAS, sem contar
+       as acrescentadas. Tem que bater com o `ord` que juntarAvulsas monta,
+       senao o que ela escreveu volta na linha errada. Em arquivo antigo as
+       acrescentadas vinham todas no fim, entao da no mesmo.            */
+    let ordBase=0;
+    cenas.forEach(function(c){
+      if(c.type!=='CENA'){ c.ord=ordBase++; c.labelOrig=c.label; }
     });
     dados=Object.assign({},p.f||{});
     dados.cenas={};
@@ -5814,9 +5902,16 @@ function formatarData(bruto){
 }
 /* a cena a mao e identificada pelo numero proprio dela: assim o que foi
    preenchido nao se solta quando ela reescreve o nome da cena */
+/* A chave e a identidade da linha: e por ela que CAM, take e observacoes
+   voltam pra cena certa. Por isso usa o rotulo ORIGINAL do roteiro e a
+   posicao ORIGINAL (`ord`), e nao o que esta na tela: acrescentar uma cena
+   no meio renumera e empurra as de baixo, e sem isso tudo que estava
+   escrito nelas se perdia. Num fluxo sem cena acrescentada ord == i e
+   labelOrig == label, entao a chave sai identica a de antes.          */
 function chaveCena(sc,i){
   if(sc && sc.id)return 'avulsa|'+sc.id;
-  return (sc.secao||'-')+'|'+sc.label+'|'+i;
+  return (sc.secao||'-')+'|'+((sc&&sc.labelOrig)||sc.label)+'|'+
+         ((sc&&sc.ord!==undefined)?sc.ord:i);
 }
 
 /* A coluna "Data de gravacao" so existe no fluxo de varias diarias. Ela e
@@ -6509,15 +6604,11 @@ function renderFluxoCenas(){
   tb.innerHTML='';
   const cenas=(STATE.flux||[]);      /* ja vem por roteiro e na ordem oficial */
   const av=document.getElementById('fxAviso');
-  if(!cenas.length){
-    const semRoteiro=TIPOS_SEM_ROTEIRO.indexOf(FLUXO.tipo||'')>=0;
-    av.innerHTML='<div class="status warn">Nenhuma cena ainda. '
-      +(semRoteiro
-        ? 'Escreva aí embaixo quantas de cada — <b>3 LOCS e 2 TOCAS</b> — e aperte Enter, '
-          +'ou use "+ uma cena" para criar uma de cada vez e dar o nome você mesma.'
-        : 'Suba o roteiro na aba TP que as cenas aparecem aqui.')+'</div>';
-    return;
-  }
+  /* Tabela vazia nao leva aviso nenhum: a caixa amarela "Nenhuma cena
+     ainda" saiu em 24/11, a pedido dela. Com o botao "+ uma cena" logo
+     embaixo e o roteiro na aba do lado, ela nao dizia nada que a tela ja
+     nao mostrasse.                                                     */
+  if(!cenas.length){ av.innerHTML=''; return; }
   av.innerHTML='';
   let secAnterior=null, tipoAnterior=null;
   cenas.forEach(function(sc,i){
@@ -6573,6 +6664,21 @@ function renderFluxoCenas(){
       bx.closest('td').classList.add('armado');
       bx.__relogio=setTimeout(desarmarXis,5000);
     };
+    /* O x so atrapalha depois que a linha tem alguma coisa escrita: some
+       sozinho e volta num toque no nome da cena. Pedido dela, 24/11.    */
+    const tdCena=tr.querySelector('td.cena');
+    if(bx && tdCena){
+      const cheia=function(){
+        return !!((d.cam||'').trim()||(d.takes||'').trim()
+                  ||(d.obs||'').trim()||(d.dataGrav||'').trim());
+      };
+      tdCena.__esconderXis=function(){
+        if(tdCena.classList.contains('armado'))return;   /* ja ia tirar */
+        tdCena.classList.toggle('sem-x',cheia());
+      };
+      tdCena.__esconderXis();
+      tdCena.addEventListener('click',function(){ tdCena.classList.remove('sem-x'); });
+    }
     /* o nome da cena a mao tambem e um input: fica de fora desta conta */
     const nomeCampo=tr.querySelector('.fx-cena-campo');
     if(nomeCampo){
@@ -6614,6 +6720,8 @@ function renderFluxoCenas(){
           try{ ins[j].setSelectionRange(p,p); }catch(e){}
         }
         d[campo]=ins[j].value;
+        /* escreveu na linha: o x sai da frente */
+        if(tdCena && tdCena.__esconderXis)tdCena.__esconderXis();
         /* cam e data de gravacao seguem a mesma regra: digitar na primeira linha
            da cena refaz o grupo inteiro; no meio, mexe so naquela linha */
         if(campo==='cam' && primeiraDoGrupo(i))espalharCam(i);
