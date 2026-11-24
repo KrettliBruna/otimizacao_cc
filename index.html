@@ -210,7 +210,15 @@
   table.fx td.diaria{border-bottom:none;}
   td.diaria{text-align:center;cursor:pointer;user-select:none;width:34px;font-weight:700;font-size:0.78rem;}
   td.diaria{transition:background-color .12s ease;}
-  tr.d1 td.diaria{background:var(--ink);color:var(--on-ink);}
+  /* Os tres marcadores de diaria sao uma LEGENDA: tem que ser a mesma cor
+     no tema claro, no escuro e no papel, senao deixam de significar a
+     mesma coisa. A 1a usava var(--ink), que inverte com o tema — no escuro
+     ela virava um bloco branco solido no meio da tabela preta, enquanto a
+     2a e a 3a ficavam azul e vermelha. Agora as tres tem cor propria.
+     O cinza escuro foi escolhido para ler nos dois fundos: quase preto
+     sobre o papel claro, e ainda visivel sobre o preto. No PDF as regras
+     de impressao continuam mandando a 1a sair preta.                    */
+  tr.d1 td.diaria{background:#3f3f3f;color:#fff;}
   tr.d2 td.diaria{background:#2f6fd0;color:#fff;}
   tr.d3 td.diaria{background:#cc2b2b;color:#fff;}
 
