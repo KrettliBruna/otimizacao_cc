@@ -5466,6 +5466,30 @@ function nomeDoRoteiro(texto){
   const m=texto.match(/Nome\s*:\s*(.+?)(?:\s{2,}|\s+Data\s*:|\s+Bpm\b|$)/im);
   return m?m[1].trim():'';
 }
+/* A versao da aula: o roteiro chama de "Tipo" o que para nos e a VERSAO —
+   Completa, Simplificada ou Versao Unica. Nao confundir com o TIPO do
+   fluxo, que e o produto: Video aula, Desafio, Review, Editorial...
+
+   Isso importa fora daqui. A vassoura de brutos trata Completa e
+   Simplificada como DUAS aulas diferentes, e so sabe distinguir pela
+   palavra escrita no nome. Nome sem versao = as duas aulas viram uma so
+   na planilha, e o bruto de uma pode ser apagado pela outra.          */
+function versaoDoRoteiro(texto){
+  const m=texto.match(/^[^\S\n]*Tipo\s*:\s*(.+?)(?:\s{2,}|\s+Apresentador\s*:|\s+Bpm\b|\s+Data\s*:|$)/im);
+  if(!m)return '';
+  const v=normalizaNome(m[1]);
+  if(/simplificad/.test(v))return 'Simplificada';
+  if(/complet/.test(v))return 'Completa';
+  if(/unic/.test(v))return 'Versão Única';
+  return '';
+}
+/* junta sem repetir: se o nome ja traz a versao, deixa como esta */
+function nomeComVersao(nome,versao){
+  if(!nome||!versao)return nome||'';
+  const n=normalizaNome(nome);
+  if(/simplificad|complet|unic/.test(n))return nome;
+  return nome+' ('+versao+')';
+}
 function msgPdf(tipo,txt){
   const el=document.getElementById('pdfStatus');
   if(el)el.innerHTML='<div class="status '+tipo+'">'+escapeHtml(txt)+'</div>';
@@ -5494,7 +5518,8 @@ async function lerPdfEMontar(file){
   const texto=await textoDoPdf(file);
   if(!texto.trim()){ msgPdf('err','O PDF não tem texto selectável — parece ser digitalizado. Cole o roteiro à mão.'); return; }
 
-  const nome=nomeDoRoteiro(texto);
+  versaoDoPdf=versaoDoRoteiro(texto);                      /* antes de descartar o cabecalho */
+  const nome=nomeComVersao(nomeDoRoteiro(texto),versaoDoPdf);
   bpmDoPdf=lerBpm(texto);                                  /* antes de descartar o cabecalho */
   carregarTextoRoteiro(roteiroLimpo(parse(texto)),nome);   /* so cenas e falas vao pro campo */
   instrutorDoPdf=instrutorPeloNome(apresentadorDoRoteiro(texto));   /* a linha do apresentador sai do campo */
@@ -6719,6 +6744,7 @@ function preencherFluxoDoRoteiro(){
 }
 let bpmDoPdf={ensina:'',toca:''};   /* lidos do PDF antes de o cabecalho ser descartado */
 let instrutorDoPdf='';              /* idem: a linha do apresentador nao fica no campo */
+let versaoDoPdf='';                 /* Completa / Simplificada / Versao Unica, do "Tipo:" */
 /* BPM: "BPM: 50" perto das cenas de ensina; "Bpm da musica: 79" no cabecalho = toca */
 function bpmDoRoteiro(){
   if(bpmDoPdf.ensina||bpmDoPdf.toca)return bpmDoPdf;
