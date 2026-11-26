@@ -1,6 +1,6 @@
 # Como usar o index.html
 
-Manual de uso. Atualizado em **25/11/2026**.
+Manual de uso. Atualizado em **26/11/2026**.
 
 As regras de comportamento e os limites de cada aparelho estão em
 `claude/regras_de_trabalho.md`. O que **não pode mudar** sem você mandar está
@@ -67,11 +67,12 @@ Confira assim:
 
 1. **No GitHub**, o `index.html` tem que estar com **~2,2 MB** e a data do
    commit de hoje. Arquivo bem menor que isso é versão antiga.
-2. **Pela tela**, a versão de 24/11 tem:
+2. **Pela tela**, a versão de 26/11 tem:
    - a **logo nova** (adesivo: violão e "cifraclub" com contorno branco)
    - o botão **+ uma cena** embaixo da tabela de cenas, **no fluxo Padrão**
    - **nenhuma caixa amarela** quando a tabela de cenas está vazia
    - **5000K** na lista de Kelvin da microaula
+   - um PDF com roteiro de reels entra **sem** as cenas do reels
 
 No alto da página: a logo do Cifra Club à esquerda, **🌙 Escuro / ☀️ Claro** à
 direita, e **Limpar tudo** zera as três abas. Cada aba tem o seu **Limpar esta
@@ -141,32 +142,68 @@ e continua disponível mesmo depois de você ter entrado pelo QR.
 2. **Nome da aula** — a página monta **Nome pro TP** e **Nome pro Fluxo**, cada
    um com seu **Copiar**.
 3. **Conferir as cenas** — LOC, ACORDES, RITMO, DEDIL, TAB, TOCA e TOCA SOLO na
-   ordem. Os dois roteiros (YouTube e site) entram juntos, cada um com a sua
-   numeração, separados por uma divisória.
+   ordem.
 4. **Ajustar à mão** — os botões de tipo trocam o tipo da cena. **Inserir cena**
    põe uma cena onde o cursor está. **Renumerar** arruma a numeração.
    **↶ Desfazer** e **↷ Refazer**.
 5. **Baixar .tpp pro Teleprompter**, ou **Salvar na pasta…** pra gravar direto.
+
+### Vários roteiros no mesmo PDF
+
+Um arquivo pode trazer `ROTEIRO DO YOUTUBE`, `ROTEIRO DO SITE`, `ROTEIRO DO
+REELS` e `ROTEIRO DO SHORTS`.
+
+- **YouTube e site entram juntos**, cada um com a sua numeração, separados por
+  uma divisória.
+- **Reels e shorts são ignorados inteiros** *(desde 26/11)*. São outro produto:
+  vêm com cabeçalho próprio e a própria numeração — um LOC 01 e um TOCA 01 que
+  repetem os do YouTube. Não entram no campo do roteiro, nem na contagem de
+  cenas, nem no `.tpp`, nem no fluxo.
+
+O recado depois de ler o PDF diz quantos roteiros entraram, por exemplo:
+*"Conferi os 2 roteiros do arquivo e juntei todos: YOUTUBE (3) + SITE (17) =
+20 cenas"*.
 
 ### O que ele lê do cabeçalho do roteiro
 
 | o que o roteiro diz | para onde vai |
 |---|---|
 | `Nome: Açaí - Djavan` | nome da aula |
-| `Tipo: Simplificada` | a versão, que **entra no nome** |
+| `Tipo: Simplificada` | a versão — mas quem decide se ela entra no nome é o instrumento |
 | `Apresentador: Gustavo Vaz` | instrutor do fluxo (vira "Vaz") |
 | `Bpm da música: 120` | BPM toca |
 | `BPM: 50` | BPM ensina |
 
-**A versão entra nos três nomes** — nome da aula, Nome pro TP e Nome pro Fluxo:
-`Açaí - Djavan (Simplificada)` e `acai_djavan_simplificada`. *(Feito em 24/11.)*
+### A versão no nome — quem manda é o instrumento
 
-Isso não é enfeite: a vassoura de brutos trata **Completa e Simplificada como
-duas aulas diferentes**, e só distingue pela palavra escrita. Sem ela, as duas
-viram uma só na planilha e uma pode ser apagada no lugar da outra.
+*(Regra sua, 26/11.)* A versão só existe para separar duas gravações da mesma
+música. Onde não há duas, ela só atrapalha o nome.
 
-Se o roteiro não disser a versão, nada é inventado — o nome fica como veio. E
-se o nome já trouxer a versão, ela não é repetida.
+| instrutor | o que entra no nome |
+|---|---|
+| **Guitarra** — Vini, Tarsius | **nunca** entra versão: guitarra é sempre única |
+| **Violão** — Fofão, Vaz, Caico | entra **sempre**: `(Completa)`, `(Simplificada)`, ou `(Versão Única)` quando o roteiro não disser outra coisa |
+| **Noel**, ou instrutor que o site não conhece | só o que estiver **escrito** no roteiro — sem instrumento ele não supõe nada |
+
+**Nada é deduzido.** `Completa` só sai se estiver escrito `Completa` — e
+"Completa" só existe quando existe uma Simplificada. Se o roteiro não diz nada,
+é versão única.
+
+**Ele lê todas as linhas `Tipo:` do arquivo** e fica com a primeira que seja
+mesmo uma versão. Num PDF de três roteiros vêm três — `Reels`, `Youtube` e
+`Completa` — e só a última é versão.
+
+> **Exemplo:** no roteiro do Voodoo Child (Vini, guitarra) está escrito
+> `Tipo: Completa` no roteiro do site. O nome sai **`Voodoo Child`**, sem
+> versão, porque guitarra nunca leva — aquele "Completa" é sobra de modelo.
+
+**Por que isso importa:** a vassoura de brutos trata Completa e Simplificada
+como duas aulas diferentes, e só distingue pela palavra escrita. Sem ela, as
+duas viram uma só na planilha e uma pode ser apagada no lugar da outra.
+
+**Um limite:** o nome é montado **na hora de ler o PDF**. Se você trocar o
+instrutor no fluxo depois, o nome **não** se renomeia sozinho — corrija o campo
+do nome à mão.
 
 ---
 
@@ -381,6 +418,11 @@ O recado volta dizendo quantos nomes foram corrigidos.
 > **Aula sem versão não é a mesma que a versionada.** `Skyfall - Adele` e
 > `Skyfall - Adele (Completa)` continuam sendo duas aulas — se virassem uma, a
 > trava de versão da vassoura de brutos cairia.
+
+> **De olho no primeiro lançamento de violão depois de 26/11:** aula de violão
+> que antes saía sem versão agora sai `(Versão Única)`. Como quem tem
+> parênteses ganha, o script vai **corrigir** as linhas antigas dessas aulas
+> para a forma nova. É o esperado, mas vale conferir na primeira vez.
 
 ### Como o script foi montado (para refazer, se precisar)
 

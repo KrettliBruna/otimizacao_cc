@@ -3777,16 +3777,29 @@ function renumerar(){
   setInput(linhas.join('\n'));
 }
 
+/* Roteiros que vem no mesmo PDF mas nao sao desta aula. O reels e outro
+   produto: tem o proprio cabecalho e a propria numeracao de cena.     */
+const SECOES_IGNORADAS=/^(REELS|SHORTS?)$/i;
 /* ---------- parse ---------- */
 function parse(raw){
   const lines=raw.split(/\r?\n/);
   const scenes=[];
   let atual=null;
   let secao=null;
+  let pular=false;
   lines.forEach(rawLine=>{
     const l=rawLine.trim();
     const mSec=l.match(/^ROTEIRO\s+DO\s+(.+)$/i);
-    if(mSec){ secao=mSec[1].trim().toUpperCase(); atual=null; return; }   /* comeca outro roteiro */
+    if(mSec){
+      secao=mSec[1].trim().toUpperCase();
+      /* O roteiro do reels nao e desta aula: e outro produto, com Nome,
+         Tipo, LOC e TOCA proprios, que vem no mesmo PDF. Ignorado
+         inteiro - cenas, falas e cabecalho - ate comecar outro roteiro.
+         Pedido dela, 26/11.                                          */
+      pular=SECOES_IGNORADAS.test(secao);
+      atual=null; return;                        /* comeca outro roteiro */
+    }
+    if(pular)return;
     const n=normLabel(l);                       /* rotulo de cena tem prioridade sobre o filtro */
     if(!n && l!=='' && linhaIgnorada(l))return;
     if(n){
@@ -5575,14 +5588,32 @@ function nomeDoRoteiro(texto){
    Simplificada como DUAS aulas diferentes, e so sabe distinguir pela
    palavra escrita no nome. Nome sem versao = as duas aulas viram uma so
    na planilha, e o bruto de uma pode ser apagado pela outra.          */
+/* Percorre TODAS as linhas "Tipo:" e fica com a primeira que seja mesmo uma
+   versao. Um PDF com tres roteiros traz tres: "Reels", "Youtube" e
+   "Completa" - so a ultima e versao, e antes daqui so a primeira era lida.
+   Nada e deduzido: se a palavra nao estiver escrita, nao sai versao.   */
 function versaoDoRoteiro(texto){
-  const m=texto.match(/^[^\S\n]*Tipo\s*:\s*(.+?)(?:\s{2,}|\s+Apresentador\s*:|\s+Bpm\b|\s+Data\s*:|$)/im);
-  if(!m)return '';
-  const v=normalizaNome(m[1]);
-  if(/simplificad/.test(v))return 'Simplificada';
-  if(/complet/.test(v))return 'Completa';
-  if(/unic/.test(v))return 'Versão Única';
+  const re=/^[^\S\n]*Tipo\s*:\s*(.+?)(?:\s{2,}|\s+Apresentador\s*:|\s+Bpm\b|\s+Data\s*:|$)/img;
+  let m;
+  while((m=re.exec(texto))){
+    const v=normalizaNome(m[1]);
+    if(/simplificad/.test(v))return 'Simplificada';
+    if(/complet/.test(v))return 'Completa';
+    if(/unic/.test(v))return 'Versão Única';
+  }
   return '';
+}
+/* Quem decide se a versao entra no nome e o INSTRUMENTO. Regra dela, 26/11:
+   - guitarra e sempre versao unica, entao nunca leva versao no nome;
+   - violao pode ter Completa e Simplificada, ou so a unica — por isso leva
+     sempre, e vira "Versao Unica" quando o roteiro nao diz outra coisa;
+   - instrutor que nao esta no mapa (o Noel nao esta, de proposito) fica so
+     com o que estiver escrito: sem instrumento nao da pra supor nada.   */
+function versaoPeloInstrumento(versao,instrutor){
+  const inst=INSTRUMENTO_PADRAO[instrutor]||'';
+  if(inst==='Guitarra')return '';
+  if(inst==='Violão')return versao||'Versão Única';
+  return versao;
 }
 /* junta sem repetir: se o nome ja traz a versao, deixa como esta */
 function nomeComVersao(nome,versao){
@@ -5619,11 +5650,13 @@ async function lerPdfEMontar(file){
   const texto=await textoDoPdf(file);
   if(!texto.trim()){ msgPdf('err','O PDF não tem texto selectável — parece ser digitalizado. Cole o roteiro à mão.'); return; }
 
-  versaoDoPdf=versaoDoRoteiro(texto);                      /* antes de descartar o cabecalho */
-  const nome=nomeComVersao(nomeDoRoteiro(texto),versaoDoPdf);
   bpmDoPdf=lerBpm(texto);                                  /* antes de descartar o cabecalho */
-  carregarTextoRoteiro(roteiroLimpo(parse(texto)),nome);   /* so cenas e falas vao pro campo */
+  /* o instrutor vem ANTES do nome: e o instrumento dele que decide se a
+     versao entra no nome, entao ler o apresentador primeiro            */
   instrutorDoPdf=instrutorPeloNome(apresentadorDoRoteiro(texto));   /* a linha do apresentador sai do campo */
+  versaoDoPdf=versaoPeloInstrumento(versaoDoRoteiro(texto),instrutorDoPdf);
+  const nome=nomeComVersao(nomeDoRoteiro(texto),versaoDoPdf);
+  carregarTextoRoteiro(roteiroLimpo(parse(texto)),nome);   /* so cenas e falas vao pro campo */
   if(instrutorDoPdf){ FLUXO.instrutor=instrutorDoPdf; const sel=document.getElementById('fxInstrutor');
     if(sel)sel.value=instrutorDoPdf; aplicarInstrumentoPadrao(); salvarFluxoLocal(); }
   const secoes=(STATE.secoes||[]);
