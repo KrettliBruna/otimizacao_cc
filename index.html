@@ -628,7 +628,7 @@
 
   <div class="fx-cab" id="fxCabecalho">
     <div><label>Instrutor</label><select id="fxInstrutor"></select></div>
-    <div class="fx-nao-micro"><label>Tipo</label><select id="fxTipo"></select></div>
+    <div class="fx-nao-micro"><label>Produto</label><select id="fxTipo"></select></div>
     <div class="fx-nao-micro"><label>Estúdio</label><select id="fxEstudio"></select></div>
     <div><label>Instrumento</label><select id="fxInstrumento"></select></div>
     <!-- a microaula e uma leva inteira num dia so: a data e dela, nao de
@@ -5603,6 +5603,22 @@ function versaoDoRoteiro(texto){
   }
   return '';
 }
+/* O PRODUTO do fluxo: videoaula, desafio, review... O roteiro escreve isso
+   na linha "Produto:", separada da linha "Tipo:", que e a versao. Como o
+   reels tem o cabecalho dele, percorre todas as linhas e fica com a
+   primeira que seja um produto da lista — "Reels" nao e.   Dela, 26/11. */
+function produtoDoRoteiro(texto){
+  const re=/^[^\S\n]*Produto\s*:\s*(.+?)(?:\s{2,}|\s+Nome\s*:|\s+Data\s*:|$)/img;
+  let m;
+  while((m=re.exec(texto))){
+    const p=normalizaNome(m[1]);
+    if(/^v[ií]deo\s*aula$/.test(p)||/^videoaula$/.test(p))return 'Vídeo aula';
+    for(const t of TIPOS){
+      if(t && normalizaNome(t)===p)return t;
+    }
+  }
+  return '';
+}
 /* Quem decide se a versao entra no nome e o INSTRUMENTO. Regra dela, 26/11:
    - guitarra e sempre versao unica, entao nunca leva versao no nome;
    - violao pode ter Completa e Simplificada, ou so a unica — por isso leva
@@ -5659,6 +5675,15 @@ async function lerPdfEMontar(file){
   carregarTextoRoteiro(roteiroLimpo(parse(texto)),nome);   /* so cenas e falas vao pro campo */
   if(instrutorDoPdf){ FLUXO.instrutor=instrutorDoPdf; const sel=document.getElementById('fxInstrutor');
     if(sel)sel.value=instrutorDoPdf; aplicarInstrumentoPadrao(); salvarFluxoLocal(); }
+  /* o "Produto:" do roteiro cai sozinho no campo PRODUTO do fluxo */
+  const produto=produtoDoRoteiro(texto);
+  if(produto){
+    FLUXO.tipo=produto;
+    const selP=document.getElementById('fxTipo');
+    if(selP)selP.value=produto;
+    aplicarTipoSemRoteiro();                /* o produto manda na caixa de cenas */
+    salvarFluxoLocal();
+  }
   const secoes=(STATE.secoes||[]);
   const porSecao=secoes.map(function(sec){
     return sec+' ('+STATE.todas.filter(function(c){return c.secao===sec;}).length+')';

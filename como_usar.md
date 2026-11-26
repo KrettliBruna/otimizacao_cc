@@ -69,6 +69,7 @@ Confira assim:
    commit de hoje. Arquivo bem menor que isso é versão antiga.
 2. **Pela tela**, a versão de 26/11 tem:
    - a **logo nova** (adesivo: violão e "cifraclub" com contorno branco)
+   - no cabeçalho do fluxo, o campo chama **PRODUTO** (antes era *Tipo*)
    - o botão **+ uma cena** embaixo da tabela de cenas, **no fluxo Padrão**
    - **nenhuma caixa amarela** quando a tabela de cenas está vazia
    - **5000K** na lista de Kelvin da microaula
@@ -111,9 +112,10 @@ normalmente.
 ## Quando você vai usar cada coisa — a semana típica
 
 **Segunda, no Windows.** Aba TP: sobe o roteiro em PDF, confere as cenas, copia
-os nomes, baixa o `.tpp`. Aba Fluxo: escolhe o tipo de fluxo, preenche nome do
-vídeo, instrutor, estúdio, data, as câmeras. Aperta **Salvar** e escolhe uma
-pasta **dentro do iCloud** — essa escolha é uma vez só, ele lembra depois.
+os nomes, baixa o `.tpp`. Aba Fluxo: o instrutor, o produto e o instrumento já
+vieram do roteiro; você completa estúdio, data e as câmeras. Aperta **Salvar**
+e escolhe uma pasta **dentro do iCloud** — essa escolha é uma vez só, ele
+lembra depois.
 
 **Terça, no estúdio, no iPad.** Abre o site. Ele está em branco, porque o
 preenchimento de ontem mora no navegador do computador e não viaja. Aperta
@@ -169,10 +171,14 @@ O recado depois de ler o PDF diz quantos roteiros entraram, por exemplo:
 | o que o roteiro diz | para onde vai |
 |---|---|
 | `Nome: Açaí - Djavan` | nome da aula |
+| `Produto: Videoaula` | o campo **PRODUTO** do fluxo *(novo em 26/11)* |
 | `Tipo: Simplificada` | a versão — mas quem decide se ela entra no nome é o instrumento |
 | `Apresentador: Gustavo Vaz` | instrutor do fluxo (vira "Vaz") |
 | `Bpm da música: 120` | BPM toca |
 | `BPM: 50` | BPM ensina |
+
+> **`Produto` e `Tipo` são coisas diferentes no roteiro.** `Produto` é
+> videoaula, desafio, review… `Tipo` é a versão — Completa, Simplificada.
 
 ### A versão no nome — quem manda é o instrumento
 
@@ -212,17 +218,34 @@ do nome à mão.
 No topo, acima do nome do vídeo, sai a logo do Cifra Club — ela vai junto no
 PDF.
 
-### Tipo de fluxo
+### O cabeçalho
+
+**INSTRUTOR · PRODUTO · ESTÚDIO · INSTRUMENTO.**
+
+- **PRODUTO** *(chamava-se Tipo até 26/11)* — Vídeo aula, Desafio, Review,
+  Editorial, Academy, Insert. **Vem preenchido do roteiro**: a linha `Produto:`
+  do cabeçalho cai sozinha aqui ao subir o PDF. Como o reels tem o cabeçalho
+  dele, o site pula o `Produto: Reels` e pega o próximo que seja um produto da
+  lista. `Videoaula` e `Vídeo aula` caem os dois em **Vídeo aula**.
+- **INSTRUTOR** — vem do `Apresentador:` do roteiro.
+- **INSTRUMENTO** — o instrutor puxa o padrão sozinho: Vini e Tarsius na
+  guitarra; Fofão, Vaz e Caico no violão. Noel fica sem instrumento.
+- **ESTÚDIO** — este você escolhe; não está no roteiro.
+
+Tudo continua editável: se o roteiro trouxer errado, é só trocar no campo.
+
+### Modelo de fluxo
 
 - **Padrão** — `D · Cena · Cam · Take(s) · Observações`.
 - **Várias diárias** — acrescenta a coluna `Data de gravação`, o bloco
   *Arquivos por diária* e o campo **Quantas diárias**.
-- **Desafio, review, editorial e insert** — vêm sem roteiro; as cenas você
-  mesma cria (ver abaixo).
 - **Microaula** — a leva inteira de um dia. Não usa roteiro: você cola os nomes
   das músicas e ele monta a lista, com **Fundo**, **Recorte**, instrumento e
   diagrama em cada linha, e **Data de gravação** no cabeçalho. Dá pra escolher
   **dois fundos** na mesma aula pelo **+**.
+
+Com o produto **Desafio, review, editorial ou insert**, a gravação costuma vir
+sem roteiro — e aí aparece a caixa de criar cenas (ver abaixo).
 
 ### Acrescentar uma cena que o roteiro esqueceu
 
@@ -258,10 +281,11 @@ e site), os dois começam no LOC 01, e escrever `LOC 2` põe a cena no bloco do
 
 ### Cenas sem roteiro — desafio, review, editorial e insert
 
-Escolhendo um desses tipos aparece também a caixa **"Cenas — escreva quantas de
+Com um desses produtos aparece também a caixa **"Cenas — escreva quantas de
 cada"**. Escreva `3 LOCS e 2 TOCAS` e ele cria as cenas numeradas. Essa caixa
-**só aparece nesses quatro tipos** — na vídeo aula fica só o `+ uma cena`, para
-não encher a tela de uma folha que já veio pronta.
+**só aparece nesses quatro produtos** — na vídeo aula fica só o `+ uma cena`,
+para não encher a tela de uma folha que já veio pronta. Como o produto agora
+vem do roteiro, a caixa aparece ou some sozinha ao subir o PDF.
 
 Essas cenas também alimentam a tabela **Arquivos por diária** — ela lê o TP
 quando tem TP, e lê o fluxo quando não tem.
